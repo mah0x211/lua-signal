@@ -26,6 +26,12 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+#define lstate_num2tbl(L,k,v) do{ \
+    lua_pushstring(L,k); \
+    lua_pushnumber(L,v); \
+    lua_rawset(L,-3); \
+}while(0)
+
 static int block_lua( lua_State *L )
 {
     sigset_t ss;
@@ -217,18 +223,117 @@ LUALIB_API int luaopen_signal( lua_State *L )
         lua_pushcfunction( L, method[i].func );
         lua_rawset( L, -3 );
     }
-    
+
     // add signal constants
-    for( i = 1; i < NSIG; i++ ){
-        len = strlen( sys_signame[i] );
-        len = len < 255 ? len : 254;
-        memcpy( buf, sys_signame[i], len );
-        buf[len] = 0;
-        str2upper( buf );
-        lua_pushstring( L, buf );
-        lua_pushnumber( L, i );
-        lua_rawset( L, -3 );
-    }
+#ifdef SIGABRT
+    lstate_num2tbl( L, "ABRT", SIGABRT );
+#endif
+#ifdef SIGALRM
+    lstate_num2tbl( L, "ALRM", SIGALRM );
+#endif
+#ifdef SIGBUS
+    lstate_num2tbl( L, "BUS", SIGBUS );
+#endif
+#ifdef SIGCHLD
+    lstate_num2tbl( L, "CHLD", SIGCHLD );
+#endif
+#ifdef SIGCLD
+    lstate_num2tbl( L, "CLD", SIGCLD );
+#endif
+#ifdef SIGCONT
+    lstate_num2tbl( L, "CONT", SIGCONT );
+#endif
+#ifdef SIGEMT
+    lstate_num2tbl( L, "EMT", SIGEMT );
+#endif
+#ifdef SIGFPE
+    lstate_num2tbl( L, "FPE", SIGFPE );
+#endif
+#ifdef SIGHUP
+    lstate_num2tbl( L, "HUP", SIGHUP );
+#endif
+#ifdef SIGILL
+    lstate_num2tbl( L, "ILL", SIGILL );
+#endif
+#ifdef SIGINFO
+    lstate_num2tbl( L, "INFO", SIGINFO );
+#endif
+#ifdef SIGINT
+    lstate_num2tbl( L, "INT", SIGINT );
+#endif
+#ifdef SIGIO
+    lstate_num2tbl( L, "IO", SIGIO );
+#endif
+#ifdef SIGIOT
+    lstate_num2tbl( L, "IOT", SIGIOT );
+#endif
+#ifdef SIGKILL
+    lstate_num2tbl( L, "KILL", SIGKILL );
+#endif
+#ifdef SIGPIPE
+    lstate_num2tbl( L, "PIPE", SIGPIPE );
+#endif
+#ifdef SIGPOLL
+    lstate_num2tbl( L, "POLL", SIGPOLL );
+#endif
+#ifdef SIGPROF
+    lstate_num2tbl( L, "PROF", SIGPROF );
+#endif
+#ifdef SIGPWR
+    lstate_num2tbl( L, "PWR", SIGPWR );
+#endif
+#ifdef SIGQUIT
+    lstate_num2tbl( L, "QUIT", SIGQUIT );
+#endif
+#ifdef SIGSEGV
+    lstate_num2tbl( L, "SEGV", SIGSEGV );
+#endif
+#ifdef SIGSTKFLT
+    lstate_num2tbl( L, "STKFLT", SIGSTKFLT );
+#endif
+#ifdef SIGSTOP
+    lstate_num2tbl( L, "STOP", SIGSTOP );
+#endif
+#ifdef SIGSYS
+    lstate_num2tbl( L, "SYS", SIGSYS );
+#endif
+#ifdef SIGTERM
+    lstate_num2tbl( L, "TERM", SIGTERM );
+#endif
+#ifdef SIGTRAP
+    lstate_num2tbl( L, "TRAP", SIGTRAP );
+#endif
+#ifdef SIGTSTP
+    lstate_num2tbl( L, "TSTP", SIGTSTP );
+#endif
+#ifdef SIGTTIN
+    lstate_num2tbl( L, "TTIN", SIGTTIN );
+#endif
+#ifdef SIGTTOU
+    lstate_num2tbl( L, "TTOU", SIGTTOU );
+#endif
+#ifdef SIGURG
+    lstate_num2tbl( L, "URG", SIGURG );
+#endif
+#ifdef SIGUSR1
+    lstate_num2tbl( L, "USR1", SIGUSR1 );
+#endif
+#ifdef SIGUSR2
+    lstate_num2tbl( L, "USR2", SIGUSR2 );
+#endif
+#ifdef SIGVTALRM
+    lstate_num2tbl( L, "VTALRM", SIGVTALRM );
+#endif
+#ifdef SIGWINCH
+    lstate_num2tbl( L, "WINCH", SIGWINCH );
+#endif
+#ifdef SIGXCPU
+    lstate_num2tbl( L, "XCPU", SIGXCPU );
+#endif
+#ifdef SIGXFSZ
+    lstate_num2tbl( L, "XFSZ", SIGXFSZ );
+#endif
+
     
     return 1;
 }
