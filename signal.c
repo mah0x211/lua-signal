@@ -50,7 +50,7 @@ static int block_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
+    lua_pushstring( L, strerror( errno ) );
     
     return 2;
 }
@@ -72,8 +72,8 @@ static int isblock_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
-    
+    lua_pushstring( L, strerror( errno ) );
+
     return 2;
 }
 
@@ -89,8 +89,8 @@ static int blockAll_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
-    
+    lua_pushstring( L, strerror( errno ) );
+
     return 2;
 }
 
@@ -113,8 +113,8 @@ static int unblock_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
-    
+    lua_pushstring( L, strerror( errno ) );
+
     return 2;
 }
 
@@ -130,8 +130,8 @@ static int unblockAll_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
-    
+    lua_pushstring( L, strerror( errno ) );
+
     return 2;
 }
 
@@ -150,8 +150,8 @@ static int raise_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
-    
+    lua_pushstring( L, strerror( errno ) );
+
     return 2;
 }
 
@@ -175,8 +175,8 @@ static int kill_lua( lua_State *L )
     
     // got error
     lua_pushboolean( L, 0 );
-    lua_pushinteger( L, errno );
-    
+    lua_pushstring( L, strerror( errno ) );
+
     return 2;
 }
 
