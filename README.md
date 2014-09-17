@@ -28,8 +28,8 @@ block/unblock the specified signal.
 
 **Returns**
 
-1. boolean: true on success, or false and errno on failure.
-2. errno: EINVAL or EFAULT.
+1. boolean: true on success, or false and errstr on failure.
+2. errstr: dependent on a system.
 
 
 ### blockAll() / unblockAll()
@@ -37,8 +37,8 @@ block/unblock the signals that specified by sigfillset on internally.
 
 **Returns**
 
-1. boolean: true on success, or false and errno on failure.
-2. errno: EINVAL | EFAULT.
+1. boolean: true on success, or false and errstr on failure.
+2. errstr: dependent on a system.
 
 
 ### isblock( signo )
@@ -51,7 +51,7 @@ return true if the specified signal is blocked.
 **Returns**
 
 1. boolean: true on block, or false on not block or failure.
-2. errno: EINVAL.
+2. errstr: dependent on a system.
 
 
 ### raise( signo )
@@ -63,8 +63,8 @@ send the specified signal to the current process.
 
 **Returns**
 
-1. boolean: true on success, or false and errno on failure.
-2. errno: EINVAL, or dependent on a system.
+1. boolean: true on success, or false and errstr on failure.
+2. errstr: dependent on a system.
 
 
 ### kill( pid, signo )
@@ -77,8 +77,8 @@ send the specified signal to the specified process.
 
 **Returns**
 
-1. boolean: true on success, or false and errno on failure.
-2. errno: EINVAL, EPERM or ESRCH.
+1. boolean: true on success, or false and errstr on failure.
+2. errstr: dependent on a system.
 
 
 ## constants
