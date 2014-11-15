@@ -8,14 +8,6 @@ signal module.
 luarocks install --from=http://mah0x211.github.io/rocks/ signal
 ```
 
-or 
-
-```sh
-git clone https://github.com/mah0x211/lua-signal.git
-cd lua-signal
-luarocks make
-```
-
 
 ## functions
 
