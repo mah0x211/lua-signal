@@ -155,6 +155,7 @@ static int raise_lua( lua_State *L )
     return 2;
 }
 
+
 static int kill_lua( lua_State *L )
 {
     lua_Integer signo;
@@ -181,6 +182,32 @@ static int kill_lua( lua_State *L )
 }
 
 
+static int killpg_lua( lua_State *L )
+{
+    lua_Integer signo;
+    
+    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || !lua_isnumber( L, 2 ) || 
+        ( signo = lua_tointeger( L, 2 ) ) >= NSIG ){
+        errno = EINVAL;
+    }
+    else
+    {
+        pid_t pid = (pid_t)lua_tointeger( L, 1 );
+        
+        if( killpg( pid, (int)signo ) == 0 ){
+            lua_pushboolean( L, 1 );
+            return 1;
+        }
+    }
+    
+    // got error
+    lua_pushboolean( L, 0 );
+    lua_pushstring( L, strerror( errno ) );
+
+    return 2;
+}
+
+
 LUALIB_API int luaopen_signal( lua_State *L )
 {
     struct luaL_Reg method[] = {
@@ -191,6 +218,7 @@ LUALIB_API int luaopen_signal( lua_State *L )
         { "unblockAll", unblockAll_lua },
         { "raise", raise_lua },
         { "kill", kill_lua },
+        { "killpg", killpg_lua },
         { NULL, NULL }
     };
     int i;
