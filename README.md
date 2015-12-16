@@ -60,6 +60,7 @@ send the specified signal to the current process.
 
 
 ### kill( pid, signo )
+
 send the specified signal to the specified process.
 
 **Parameters**
@@ -71,6 +72,22 @@ send the specified signal to the specified process.
 
 1. boolean: true on success, or false and errstr on failure.
 2. errstr: dependent on a system.
+
+
+### killpg( pgrp, signo )
+
+send signal to the specified process group
+
+**Parameters**
+
+- pgrp: process group id.
+- signo: valid signal number.
+
+**Returns**
+
+1. boolean: true on success, or false and errstr on failure.
+2. errstr: dependent on a system.
+
 
 
 ## constants
