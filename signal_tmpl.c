@@ -28,45 +28,48 @@
 #include "lauxhlib.h"
 
 
+static inline int signal_checksigno( lua_State *L, int idx )
+{
+    int signo = lauxh_checkinteger( L, idx );
+
+    lauxh_argcheck( L, signo > 0 && signo < NSIG, idx,
+                    "signo expected, got out of range" );
+
+    return signo;
+}
+
+
 static int block_lua( lua_State *L )
 {
+    int signo = signal_checksigno( L, 1 );
     sigset_t ss;
-    lua_Integer signo;
-    
+
     sigemptyset( &ss );
-    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
-        ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
-        errno = EINVAL;
-    }
-    else if( sigaddset( &ss, (int)signo ) == 0 && 
-             sigprocmask( SIG_BLOCK, &ss, NULL ) == 0 ){
+    if( sigaddset( &ss, signo ) == 0 &&
+        sigprocmask( SIG_BLOCK, &ss, NULL ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
-    
+
     return 2;
 }
 
 
 static int isblock_lua( lua_State *L )
 {
+    int signo = signal_checksigno( L, 1 );
     sigset_t ss;
-    lua_Integer signo;
-    
+
     sigemptyset( &ss );
-    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
-        ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
-        errno = EINVAL;
-    }
-    else if( sigprocmask( 0, NULL, &ss ) == 0 ){
-        lua_pushboolean( L, sigismember( &ss, (int)signo ) == 1 );
+    if( sigprocmask( 0, NULL, &ss ) == 0 ){
+        lua_pushboolean( L, sigismember( &ss, signo ) == 1 );
         return 1;
     }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
@@ -95,20 +98,16 @@ static int blockAll_lua( lua_State *L )
 
 static int unblock_lua( lua_State *L )
 {
+    int signo = signal_checksigno( L, 1 );
     sigset_t ss;
-    lua_Integer signo;
-    
+
     sigemptyset( &ss );
-    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
-        ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
-        errno = EINVAL;
-    }
-    else if( sigaddset( &ss, (int)signo ) == 0 && 
-             sigprocmask( SIG_UNBLOCK, &ss, NULL ) == 0 ){
+    if( sigaddset( &ss, signo ) == 0 &&
+        sigprocmask( SIG_UNBLOCK, &ss, NULL ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
@@ -137,13 +136,9 @@ static int unblockAll_lua( lua_State *L )
 
 static int raise_lua( lua_State *L )
 {
-    lua_Integer signo;
-    
-    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
-        ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
-        errno = EINVAL;
-    }
-    else if( raise( (int)signo ) == 0 ){
+    int signo = signal_checksigno( L, 1 );
+
+    if( raise( signo ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
@@ -158,23 +153,14 @@ static int raise_lua( lua_State *L )
 
 static int kill_lua( lua_State *L )
 {
-    lua_Integer signo;
-    
-    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
-        !lauxh_isinteger( L, 2 ) ||
-        ( signo = lua_tointeger( L, 2 ) ) >= NSIG ){
-        errno = EINVAL;
+    pid_t pid = (pid_t)lauxh_checkinteger( L, 1 );
+    int signo = signal_checksigno( L, 2 );
+
+    if( kill( pid, signo ) == 0 ){
+        lua_pushboolean( L, 1 );
+        return 1;
     }
-    else
-    {
-        pid_t pid = (pid_t)lua_tointeger( L, 1 );
-        
-        if( kill( pid, (int)signo ) == 0 ){
-            lua_pushboolean( L, 1 );
-            return 1;
-        }
-    }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
@@ -185,23 +171,14 @@ static int kill_lua( lua_State *L )
 
 static int killpg_lua( lua_State *L )
 {
-    lua_Integer signo;
-    
-    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
-        !lauxh_isinteger( L, 2 ) ||
-        ( signo = lua_tointeger( L, 2 ) ) >= NSIG ){
-        errno = EINVAL;
+    pid_t pid = (pid_t)lauxh_checkinteger( L, 1 );
+    int signo = signal_checksigno( L, 2 );
+
+    if( killpg( pid, signo ) == 0 ){
+        lua_pushboolean( L, 1 );
+        return 1;
     }
-    else
-    {
-        pid_t pid = (pid_t)lua_tointeger( L, 1 );
-        
-        if( killpg( pid, (int)signo ) == 0 ){
-            lua_pushboolean( L, 1 );
-            return 1;
-        }
-    }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
