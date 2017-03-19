@@ -1,7 +1,7 @@
 package = "signal"
 version = "scm-1"
 source = {
-    url = "git://github.com/mah0x211/lua-signal.git"
+    url = "gitrec://github.com/mah0x211/lua-signal.git"
 }
 description = {
     summary = "signal module",
@@ -10,7 +10,8 @@ description = {
     maintainer = "Masatoshi Teruya"
 }
 dependencies = {
-    "lua >= 5.1"
+    "lua >= 5.1",
+    "luarocks-fetch-gitrec >= 0.2",
 }
 build = {
     type = "make",
@@ -18,7 +19,7 @@ build = {
         PACKAGE         = "signal",
         CFLAGS          = "$(CFLAGS)",
         WARNINGS        = "-Wall -Wno-trigraphs -Wmissing-field-initializers -Wreturn-type -Wmissing-braces -Wparentheses -Wno-switch -Wunused-function -Wunused-label -Wunused-parameter -Wunused-variable -Wunused-value -Wuninitialized -Wunknown-pragmas -Wshadow -Wsign-compare",
-        CPPFLAGS        = "-I$(LUA_INCDIR)",
+        CPPFLAGS        = "-I$(LUA_INCDIR) -Ideps/lauxhlib",
         LDFLAGS         = "$(LIBFLAG)",
         LIB_EXTENSION   = "$(LIB_EXTENSION)"
     },

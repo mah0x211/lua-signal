@@ -27,7 +27,7 @@ end
 local function codeGen( arr )
     local fmtConstants = [[
 #ifdef %s
-    lstate_num2tbl( L, "%s", %s );
+    lauxh_pushnum2tbl( L, "%s", %s );
 #endif
 
 ]];

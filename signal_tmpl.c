@@ -25,12 +25,8 @@
 #include <signal.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include "lauxhlib.h"
 
-#define lstate_num2tbl(L,k,v) do{ \
-    lua_pushstring(L,k); \
-    lua_pushnumber(L,v); \
-    lua_rawset(L,-3); \
-}while(0)
 
 static int block_lua( lua_State *L )
 {
@@ -38,7 +34,7 @@ static int block_lua( lua_State *L )
     lua_Integer signo;
     
     sigemptyset( &ss );
-    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || 
+    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
         ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
         errno = EINVAL;
     }
@@ -55,13 +51,14 @@ static int block_lua( lua_State *L )
     return 2;
 }
 
+
 static int isblock_lua( lua_State *L )
 {
     sigset_t ss;
     lua_Integer signo;
     
     sigemptyset( &ss );
-    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || 
+    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
         ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
         errno = EINVAL;
     }
@@ -76,6 +73,7 @@ static int isblock_lua( lua_State *L )
 
     return 2;
 }
+
 
 static int blockAll_lua( lua_State *L )
 {
@@ -101,7 +99,7 @@ static int unblock_lua( lua_State *L )
     lua_Integer signo;
     
     sigemptyset( &ss );
-    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || 
+    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
         ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
         errno = EINVAL;
     }
@@ -117,6 +115,7 @@ static int unblock_lua( lua_State *L )
 
     return 2;
 }
+
 
 static int unblockAll_lua( lua_State *L )
 {
@@ -135,11 +134,12 @@ static int unblockAll_lua( lua_State *L )
     return 2;
 }
 
+
 static int raise_lua( lua_State *L )
 {
     lua_Integer signo;
     
-    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || 
+    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
         ( signo = lua_tointeger( L, 1 ) ) >= NSIG ){
         errno = EINVAL;
     }
@@ -160,7 +160,8 @@ static int kill_lua( lua_State *L )
 {
     lua_Integer signo;
     
-    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || !lua_isnumber( L, 2 ) || 
+    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
+        !lauxh_isinteger( L, 2 ) ||
         ( signo = lua_tointeger( L, 2 ) ) >= NSIG ){
         errno = EINVAL;
     }
@@ -186,7 +187,8 @@ static int killpg_lua( lua_State *L )
 {
     lua_Integer signo;
     
-    if( !lua_gettop( L ) || !lua_isnumber( L, 1 ) || !lua_isnumber( L, 2 ) || 
+    if( !lua_gettop( L ) || !lauxh_isinteger( L, 1 ) ||
+        !lauxh_isinteger( L, 2 ) ||
         ( signo = lua_tointeger( L, 2 ) ) >= NSIG ){
         errno = EINVAL;
     }
@@ -226,9 +228,7 @@ LUALIB_API int luaopen_signal( lua_State *L )
     // add methods
     lua_newtable( L );
     for( i = 0; method[i].name; i++ ){
-        lua_pushstring( L, method[i].name );
-        lua_pushcfunction( L, method[i].func );
-        lua_rawset( L, -3 );
+        lauxh_pushfn2tbl( L, method[i].name, method[i].func );
     }
 
     // set signal constants
