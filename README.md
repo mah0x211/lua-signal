@@ -59,14 +59,14 @@ send the specified signal to the current process.
 2. errstr: dependent on a system.
 
 
-### kill( pid, signo )
+### kill( signo [, pid] )
 
 send the specified signal to the specified process.
 
 **Parameters**
 
-- pid: process id.
 - signo: valid signal number.
+- pid: process id. (`default: id of the calling process`)
 
 **Returns**
 
@@ -74,14 +74,14 @@ send the specified signal to the specified process.
 2. errstr: dependent on a system.
 
 
-### killpg( pgrp, signo )
+### killpg( signo [, pgrp] )
 
 send signal to the specified process group
 
 **Parameters**
 
-- pgrp: process group id.
 - signo: valid signal number.
+- pgrp: process group id (`default: id of the calling process`)
 
 **Returns**
 
