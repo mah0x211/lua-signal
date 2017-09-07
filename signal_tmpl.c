@@ -81,13 +81,13 @@ static int isblock_lua( lua_State *L )
 static int blockAll_lua( lua_State *L )
 {
     sigset_t ss;
-    
+
     sigfillset( &ss );
     if( sigprocmask( SIG_BLOCK, &ss, NULL ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
@@ -119,13 +119,13 @@ static int unblock_lua( lua_State *L )
 static int unblockAll_lua( lua_State *L )
 {
     sigset_t ss;
-    
+
     sigfillset( &ss );
     if( sigprocmask( SIG_UNBLOCK, &ss, NULL ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
@@ -142,7 +142,7 @@ static int raise_lua( lua_State *L )
         lua_pushboolean( L, 1 );
         return 1;
     }
-    
+
     // got error
     lua_pushboolean( L, 0 );
     lua_pushstring( L, strerror( errno ) );
@@ -201,7 +201,7 @@ LUALIB_API int luaopen_signal( lua_State *L )
         { NULL, NULL }
     };
     int i;
-    
+
     // add methods
     lua_newtable( L );
     for( i = 0; method[i].name; i++ ){
@@ -210,6 +210,6 @@ LUALIB_API int luaopen_signal( lua_State *L )
 
     // set signal constants
 #define GEN_SIGNO_DECL
-    
+
     return 1;
 }
