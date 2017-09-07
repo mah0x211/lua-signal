@@ -23,6 +23,8 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <lauxlib.h>
 #include <lualib.h>
 #include "lauxhlib.h"
@@ -153,8 +155,8 @@ static int raise_lua( lua_State *L )
 
 static int kill_lua( lua_State *L )
 {
-    pid_t pid = (pid_t)lauxh_checkinteger( L, 1 );
-    int signo = signal_checksigno( L, 2 );
+    int signo = signal_checksigno( L, 1 );
+    pid_t pid = (pid_t)lauxh_optinteger( L, 2, getpid() );
 
     if( kill( pid, signo ) == 0 ){
         lua_pushboolean( L, 1 );
@@ -171,8 +173,8 @@ static int kill_lua( lua_State *L )
 
 static int killpg_lua( lua_State *L )
 {
-    pid_t pid = (pid_t)lauxh_checkinteger( L, 1 );
-    int signo = signal_checksigno( L, 2 );
+    int signo = signal_checksigno( L, 1 );
+    pid_t pid = (pid_t)lauxh_optinteger( L, 2, getpgrp() );
 
     if( killpg( pid, signo ) == 0 ){
         lua_pushboolean( L, 1 );
