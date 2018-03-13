@@ -189,6 +189,16 @@ static int killpg_lua( lua_State *L )
 }
 
 
+static int alarm_lua( lua_State *L )
+{
+    unsigned int sec = lauxh_checkuint32( L, 1 );
+
+    lua_pushinteger( L, alarm( sec ) );
+
+    return 1;
+}
+
+
 LUALIB_API int luaopen_signal( lua_State *L )
 {
     struct luaL_Reg method[] = {
@@ -200,6 +210,7 @@ LUALIB_API int luaopen_signal( lua_State *L )
         { "raise", raise_lua },
         { "kill", kill_lua },
         { "killpg", killpg_lua },
+        { "alarm", alarm_lua },
         { NULL, NULL }
     };
     int i;
