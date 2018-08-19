@@ -267,6 +267,23 @@ static int ignore_lua( lua_State *L )
 }
 
 
+static int default_lua( lua_State *L )
+{
+    int signo = signal_checksigno( L, 1 );
+
+    if( signal( signo, SIG_DFL ) != SIG_ERR ){
+        lua_pushboolean( L, 1 );
+        return 1;
+    }
+
+    // got error
+    lua_pushboolean( L, 0 );
+    lua_pushstring( L, strerror( errno ) );
+
+    return 1;
+}
+
+
 LUALIB_API int luaopen_signal( lua_State *L )
 {
     struct luaL_Reg method[] = {
@@ -280,6 +297,7 @@ LUALIB_API int luaopen_signal( lua_State *L )
         { "killpg", killpg_lua },
         { "alarm", alarm_lua },
         { "ignore", ignore_lua },
+        { "default", default_lua },
         { NULL, NULL }
     };
     int i;
