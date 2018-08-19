@@ -43,12 +43,25 @@ static inline int signal_checksigno( lua_State *L, int idx )
 
 static int block_lua( lua_State *L )
 {
-    int signo = signal_checksigno( L, 1 );
+    int argc = lua_gettop( L );
+    int i = 1;
     sigset_t ss;
 
+    lauxh_argcheck( L, argc > 0, 1, "signo expected, got no value" );
     sigemptyset( &ss );
-    if( sigaddset( &ss, signo ) == 0 &&
-        sigprocmask( SIG_BLOCK, &ss, NULL ) == 0 ){
+    for(; i <= argc; i++ )
+    {
+        int signo = signal_checksigno( L, i );
+
+        // failed to add signo
+        if( sigaddset( &ss, signo ) != 0 ){
+            lua_pushboolean( L, 0 );
+            lua_pushstring( L, strerror( errno ) );
+            return 2;
+        }
+    }
+
+    if( sigprocmask( SIG_BLOCK, &ss, NULL ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
@@ -63,20 +76,45 @@ static int block_lua( lua_State *L )
 
 static int isblock_lua( lua_State *L )
 {
-    int signo = signal_checksigno( L, 1 );
+    int argc = lua_gettop( L );
+    int res = 0;
+    int i = 1;
     sigset_t ss;
 
+    lauxh_argcheck( L, argc > 0, 1, "signo expected, got no value" );
     sigemptyset( &ss );
-    if( sigprocmask( 0, NULL, &ss ) == 0 ){
-        lua_pushboolean( L, sigismember( &ss, signo ) == 1 );
-        return 1;
+    if( sigprocmask( 0, NULL, &ss ) != 0 ){
+        lua_pushboolean( L, 0 );
+        lua_pushstring( L, strerror( errno ) );
+        return 2;
     }
 
-    // got error
-    lua_pushboolean( L, 0 );
-    lua_pushstring( L, strerror( errno ) );
+    lua_pushboolean( L, 1 );
+    lua_pushnil( L );
+    for(; i <= argc; i++ )
+    {
+        int signo = signal_checksigno( L, i );
+        int rc = sigismember( &ss, signo );
 
-    return 2;
+        switch( rc ){
+            case -1:
+                lua_pushboolean( L, 0 );
+                lua_pushstring( L, strerror( errno ) );
+                return 2;
+
+            case 0:
+                lua_pushinteger( L, signo );
+                break;
+        }
+    }
+
+    res = lua_gettop( L ) - argc;
+    if( res > 2 ){
+        lua_pushboolean( L, 0 );
+        lua_replace( L, argc + 1 );
+    }
+
+    return res;
 }
 
 
@@ -100,12 +138,25 @@ static int blockAll_lua( lua_State *L )
 
 static int unblock_lua( lua_State *L )
 {
-    int signo = signal_checksigno( L, 1 );
+    int argc = lua_gettop( L );
+    int i = 1;
     sigset_t ss;
 
+    lauxh_argcheck( L, argc > 0, 1, "signo expected, got no value" );
     sigemptyset( &ss );
-    if( sigaddset( &ss, signo ) == 0 &&
-        sigprocmask( SIG_UNBLOCK, &ss, NULL ) == 0 ){
+    for(; i <= argc; i++ )
+    {
+        int signo = signal_checksigno( L, i );
+
+        // failed to add signo
+        if( sigaddset( &ss, signo ) != 0 ){
+            lua_pushboolean( L, 0 );
+            lua_pushstring( L, strerror( errno ) );
+            return 2;
+        }
+    }
+
+    if( sigprocmask( SIG_UNBLOCK, &ss, NULL ) == 0 ){
         lua_pushboolean( L, 1 );
         return 1;
     }
