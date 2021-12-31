@@ -112,7 +112,7 @@ static int isblock_lua(lua_State *L)
     return res;
 }
 
-static int blockAll_lua(lua_State *L)
+static int blockall_lua(lua_State *L)
 {
     sigset_t ss;
 
@@ -160,7 +160,7 @@ static int unblock_lua(lua_State *L)
     return 2;
 }
 
-static int unblockAll_lua(lua_State *L)
+static int unblockall_lua(lua_State *L)
 {
     sigset_t ss;
 
@@ -272,10 +272,12 @@ LUALIB_API int luaopen_signal(lua_State *L)
 {
     struct luaL_Reg method[] = {
         {"block",      block_lua     },
-        {"blockAll",   blockAll_lua  },
+        {"blockAll",   blockall_lua  },
+        {"blockall",   blockall_lua  },
         {"isblock",    isblock_lua   },
         {"unblock",    unblock_lua   },
-        {"unblockAll", unblockAll_lua},
+        {"unblockAll", unblockall_lua},
+        {"unblockall", unblockall_lua},
         {"raise",      raise_lua     },
         {"kill",       kill_lua      },
         {"killpg",     killpg_lua    },
