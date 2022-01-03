@@ -1,57 +1,51 @@
-
 local function openFile()
-    local file = io.open('./signo.txt');
-    local errno, _, k, v;
-    local tbl = {};
-    local arr = {};
+    local file = assert(io.open('./signo.txt'))
+    local tbl = {}
+    local arr = {}
 
     -- remove duplicate
-    for _ in file:lines() do
-        errno = _:match('^SIG[A-Z0-9]+$' );
+    for line in file:lines() do
+        local errno = line:match('^SIG[A-Z0-9]+$')
         if not errno then
-            error( 'invalid line: ' .. _ );
+            error('invalid line: ' .. line)
         end
         tbl[errno] = true;
     end
 
-    for _ in pairs( tbl ) do
-        arr[#arr+1] = _;
+    for errno in pairs(tbl) do
+        arr[#arr + 1] = errno
     end
+    table.sort(arr)
 
-    table.sort( arr );
-
-    return arr;
+    return arr
 end
 
-
-local function codeGen( arr )
+local function codeGen(arr)
     local fmtConstants = [[
 #ifdef %s
-    lauxh_pushnum2tbl( L, "%s", %s );
+    lauxh_pushint2tbl( L, "%s", %s );
 #endif
 
 ]];
-    local errnoConstants = '';
-    local _, v;
+    local errnoConstants = ''
 
-    for i, v in ipairs( arr ) do
-        errnoConstants = errnoConstants .. fmtConstants:format( v, v, v );
+    for _, v in ipairs(arr) do
+        errnoConstants = errnoConstants .. fmtConstants:format(v, v, v)
     end
 
     return {
-        DECL = errnoConstants
+        DECL = errnoConstants,
     };
 end
 
-
-local function inject( tbl )
-    local file = io.open('./signal_tmpl.c'):read('*a');
-    local replace = function( match )
+local function inject(tbl)
+    local file = io.open('./signal_tmpl.c'):read('*a')
+    local replace = function(match)
         return tbl[match];
     end
 
-    file = file:gsub( '#define GEN_SIGNO_(%w+)\n', replace );
-    io.open( './signal.c', 'w' ):write( file );
+    file = file:gsub('#define GEN_SIGNO_(%w+)\n', replace)
+    io.open('./signal.c', 'w'):write(file)
 end
 
-inject( codeGen( openFile() ) );
+inject(codeGen(openFile()))

@@ -8,10 +8,11 @@ description = {
     summary = "signal module",
     homepage = "https://github.com/mah0x211/lua-signal",
     license = "MIT/X11",
-    maintainer = "Masatoshi Teruya"
+    maintainer = "Masatoshi Fukunaga"
 }
 dependencies = {
     "lua >= 5.1",
+    "error >= 0.6.0",
 }
 build = {
     type = "make",
