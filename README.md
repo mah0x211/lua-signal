@@ -2,164 +2,177 @@
 
 signal module.
 
+
 ## Installation
 
 ```sh
-luarocks install --from=http://mah0x211.github.io/rocks/ signal
+luarocks install signal
 ```
 
 
-## Functions
+## Usage
 
-### ok, err = block( ... ) 
+```lua
+local signal = require('signal')
+signal.raise(signal.SIGTERM)
+```
+
+
+## Error Handling
+
+the functions are return the error object created by https://github.com/mah0x211/lua-errno module.
+
+
+## Constants
+
+please check a `signo.txt`.
+the signal numbers that listed in the file will be added automatically.
+
+
+## ok, err = block( ... ) 
 
 block the specified signal(s).
 
 **Parameters**
 
-- `...`: valid signal numbers.
+- `...:integer`: valid signal numbers.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### ok, err = unblock( ... )
+## ok, err = unblock( ... )
 
 unblock the specified signal.
 
 **Parameters**
 
-- `...`: valid signal numbers.
+- `...:integer`: valid signal numbers.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### ok, err = blockAll()
+## ok, err = blockall()
 
 block the signals that specified by sigfillset on internally.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### ok, err = unblockAll()
+## ok, err = unblockall()
 
 unblock the signals that specified by sigfillset on internally.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### blocked, err, ... = isblock( ... )
+## ok, err, ... = isblock( ... )
 
-return true if the specified signal(s) is blocked.
+return `true` if the specified signal(s) is blocked.
 
 **Parameters**
 
-- `...`: valid signal numbers.
+- `...:integer`: valid signal numbers.
 
 **Returns**
 
-1. `blocked`: true on blocked.
-2. `err`: error message.
-3. `...`: unblocked signals.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
+- `...:integer`: unblocked signals.
 
 
-### ok, err = raise( signo )
+## ok, err = raise( signo )
 
 send the specified signal to the current process.
 
 **Parameters**
 
-- `signo`: valid signal number.
+- `signo:integer`: valid signal number.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### ok, err = kill( signo [, pid] )
+## ok, err = kill( signo [, pid] )
 
 send the specified signal to the specified process.
 
 **Parameters**
 
-- `signo`: valid signal number.
-- `pid`: process id. (`default: id of the calling process`)
+- `signo:integer`: valid signal number.
+- `pid:integer`: process id. (`default: id of the calling process`)
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### ok, err = killpg( signo [, pgrp] )
+## ok, err = killpg( signo [, pgrp] )
 
 send signal to the specified process group
 
 **Parameters**
 
-- `signo`: valid signal number.
-- `pgrp`: process group id (`default: id of the calling process`)
+- `signo:integer`: valid signal number.
+- `pgrp:integer`: process group id (`default: id of the calling process`)
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### sec = alarm( sec )
+## sec = alarm( sec )
 
 deliver the signal `SIGALRM` after the specified number of seconds.
 
 **Parameters**
 
-- `sec`: number of seconds.
+- `sec:integer`: number of seconds.
 
 **Returns**
 
-1. `sec`: remaining time of timer from the previous function call.
+- `sec:integer`: remaining time of timer from the previous function call.
 
 
-### ok, err = ignore( signo )
+## ok, err = ignore( signo )
 
 ignore the specified signal.
 
 **Parameters**
 
-- `signo`: valid signal number.
+- `signo:integer`: valid signal number.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
 
-### ok, err = default( signo )
+## ok, err = default( signo )
 
 set the default action to the specified signal.
 
 **Parameters**
 
-- `signo`: valid signal number.
+- `signo:integer`: valid signal number.
 
 **Returns**
 
-1. `ok`: true on success.
-2. `err`: error message.
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
 
-
-## constants
-
-please check a `signo.txt`.
-the signal numbers that listed in the file will be added automatically.
