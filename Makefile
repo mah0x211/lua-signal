@@ -1,19 +1,27 @@
-TARGET=$(PACKAGE).$(LIB_EXTENSION)
-SRC=signal.c
-OBJ=signal.o
+TARGET=signal.$(LIB_EXTENSION)
+SRCS=$(wildcard src/*.c)
+OBJS=$(SRCS:.c=.o)
+GCDAS=$(OBJS:.o=.gcda)
+INSTALL?=install
 
+ifdef SIGNAL_COVERAGE
+COVFLAGS=--coverage
+endif
+
+.PHONY: all install
 
 all: preprocess $(TARGET)
-
-$(TARGET):
-	$(CC) $(CFLAGS) $(WARNINGS) $(CPPFLAGS) -o $(OBJ) -c $(SRC)
-	$(CC) -o $(TARGET) $(LDFLAGS) $(OBJ)
 
 preprocess:
 	lua ./signogen.lua
 
-install:
-	mkdir -p $(LIBDIR)
-	cp $(TARGET) $(LIBDIR)
-	rm -f $(OBJ) $(TARGET)
+%.o: %.c
+	$(CC) $(CFLAGS) $(WARNINGS) $(COVFLAGS) $(CPPFLAGS) -o $@ -c $<
 
+$(TARGET): $(OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS) $(COVFLAGS)
+
+install:
+	$(INSTALL) -d $(INST_LIBDIR)
+	$(INSTALL) $(TARGET) $(INST_LIBDIR)
+	rm -f $(OBJ) $(TARGET) $(GCDAS)
