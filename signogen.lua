@@ -1,5 +1,5 @@
 local function openFile()
-    local file = assert(io.open('./signo.txt'))
+    local file = assert(io.open('./var/signo.txt'))
     local tbl = {}
     local arr = {}
 
@@ -39,13 +39,13 @@ local function codeGen(arr)
 end
 
 local function inject(tbl)
-    local file = io.open('./signal_tmpl.c'):read('*a')
+    local file = io.open('./tmpl/signal_tmpl.c'):read('*a')
     local replace = function(match)
         return tbl[match];
     end
 
     file = file:gsub('#define GEN_SIGNO_(%w+)\n', replace)
-    io.open('./signal.c', 'w'):write(file)
+    io.open('./src/signal.c', 'w'):write(file)
 end
 
 inject(codeGen(openFile()))
