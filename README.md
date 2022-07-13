@@ -176,3 +176,19 @@ set the default action to the specified signal.
 - `ok:boolean`: `true` on success.
 - `err:error`: error object.
 
+
+## ok, err, timeout = wait( msec, signo, ... )
+
+waits for interrupt by the specified signals until the specified time.
+
+**Parameters**
+
+- `msec:integer`: millseconds.
+- `signo:integer`: valid signal numbers.
+
+**Returns**
+
+- `ok:boolean`: `true` on success.
+- `err:error`: error object.
+- `timeout:boolean`: `true` on timed out.
+
