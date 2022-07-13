@@ -188,7 +188,7 @@ waits for interrupt by the specified signals until the specified time.
 
 **Returns**
 
-- `ok:boolean`: `true` on success.
+- `signo:integer`: received signal number or `nil`.
 - `err:error`: error object.
 - `timeout:boolean`: `true` on timed out.
 
