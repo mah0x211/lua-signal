@@ -24,6 +24,7 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 // lua
 #include <lua_errno.h>
@@ -264,6 +265,87 @@ static int default_lua(lua_State *L)
     return 2;
 }
 
+typedef struct {
+    int use;
+    int signo;
+    struct sigaction sa;
+} sigaction_t;
+
+static sigaction_t OLD_SA[NSIG] = {0};
+
+#define REVERT2OLD_SA()                                                        \
+ do {                                                                          \
+  for (int k = 0; k < NSIG && OLD_SA[k].use; k++) {                            \
+   sigaction(OLD_SA[k].signo, &OLD_SA[k].sa, NULL);                            \
+   OLD_SA[k].use = 0;                                                          \
+  }                                                                            \
+ } while (0)
+
+static int WAIT_SIGNO = 0;
+
+static void wait_sigaction(int signo)
+{
+    WAIT_SIGNO = signo;
+    REVERT2OLD_SA();
+}
+
+static int wait_lua(lua_State *L)
+{
+    int argc            = lua_gettop(L);
+    int msec            = lauxh_checkinteger(L, 1);
+    struct sigaction sa = {.sa_handler = wait_sigaction,
+                           .sa_flags   = SA_NODEFER};
+    sigset_t old_ss;
+    sigset_t unblock_ss;
+
+    // register signal actions
+    lauxh_argcheck(L, argc > 1, 2, "signo expected, got no value");
+    sigemptyset(&old_ss);
+    sigemptyset(&unblock_ss);
+    for (int i = 2; i <= argc; i++) {
+        int signo          = lauxh_checkinteger(L, i);
+        sigaction_t *defsa = &OLD_SA[i - 2];
+
+        if (signo < 0 || signo >= NSIG) {
+            errno = EINVAL;
+        } else if (sigaddset(&unblock_ss, signo) == 0 &&
+                   sigaction(signo, &sa, &defsa->sa) == 0) {
+            defsa->use   = 1;
+            defsa->signo = signo;
+            continue;
+        }
+        REVERT2OLD_SA();
+        lua_pushnil(L);
+        lua_errno_new(L, errno, "wait");
+        return 2;
+    }
+
+    // unblock signals for wait
+    if (sigprocmask(SIG_UNBLOCK, &unblock_ss, &old_ss) == 0) {
+        // wait for a specified time or until interrupted by a signal
+        const struct timespec ts = {.tv_sec  = msec / 1000,
+                                    .tv_nsec = msec % 1000 * 1000 * 1000};
+        int rc                   = nanosleep(&ts, NULL);
+
+        // revert to old signal actions and signal mask
+        REVERT2OLD_SA();
+        sigprocmask(SIG_SETMASK, &old_ss, NULL);
+        if (rc == 0) {
+            lua_pushnil(L);
+            lua_pushnil(L);
+            lua_pushboolean(L, 1);
+            return 3;
+        } else if (errno == EINTR) {
+            lua_pushinteger(L, WAIT_SIGNO);
+            return 1;
+        }
+    }
+    // got error
+    lua_pushnil(L);
+    lua_errno_new(L, errno, "wait");
+    return 2;
+}
+
 LUALIB_API int luaopen_signal(lua_State *L)
 {
     struct luaL_Reg method[] = {
@@ -280,6 +362,7 @@ LUALIB_API int luaopen_signal(lua_State *L)
         {"alarm",      alarm_lua     },
         {"ignore",     ignore_lua    },
         {"default",    default_lua   },
+        {"wait",       wait_lua      },
         {NULL,         NULL          }
     };
 
