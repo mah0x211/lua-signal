@@ -109,14 +109,12 @@ static int isblock_lua(lua_State *L)
 
         default:
             // skip unblocked signal
-            printf("skip: %d\n", signo);
             i++;
         }
     }
 
     lua_pushboolean(L, nsig < argc);
     if (nsig) {
-        printf("nsig: %d < %d argc\n", nsig, argc);
         lua_insert(L, 1);
         lua_pushnil(L);
         lua_insert(L, 2);
