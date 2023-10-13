@@ -1,9 +1,11 @@
 local assert = require('assert')
 local errno = require('errno')
 local getpid = require('getpid')
-local msleep = require('nanosleep.msleep')
+local sleep = require('time.sleep')
+local gettime = require('time.clock').gettime
 local fork = require('fork')
 local signal = require('signal')
+
 -- constants
 local SIGNALS = {}
 for k, v in pairs(signal) do
@@ -130,13 +132,23 @@ function testcase.wait()
     local pid = getpid()
 
     -- test that wait signal
+    local t = gettime()
+    local sig, err, timeout = signal.wait(1.5, signal.SIGINT)
+    t = gettime() - t
+    assert.is_nil(sig)
+    assert.is_nil(err)
+    assert.is_true(timeout)
+    assert.greater_or_equal(t, 1.5)
+    assert.less(t, 1.6)
+
+    -- test that wait signal
     local p = assert(fork())
     if p:is_child() then
-        msleep(200)
+        sleep(0.2)
         signal.kill(signal.SIGINT, pid)
         os.exit(0)
     end
-    local sig, err, timeout = signal.wait(1000, signal.SIGINT)
+    sig, err, timeout = signal.wait(1, signal.SIGINT)
     assert.equal(sig, signal.SIGINT)
     assert.is_nil(err)
     assert.is_nil(timeout)
@@ -145,11 +157,11 @@ function testcase.wait()
     signal.blockall()
     p = assert(fork())
     if p:is_child() then
-        msleep(200)
+        sleep(0.2)
         signal.kill(signal.SIGUSR1, pid)
         os.exit(0)
     end
-    sig, err, timeout = signal.wait(1000, signal.SIGINT, signal.SIGUSR1)
+    sig, err, timeout = signal.wait(1, signal.SIGINT, signal.SIGUSR1)
     assert.equal(sig, signal.SIGUSR1)
     assert.is_nil(err)
     assert.is_nil(timeout)

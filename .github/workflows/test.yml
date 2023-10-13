@@ -59,7 +59,8 @@ jobs:
         luarocks install assert
         luarocks install fork
         luarocks install getpid
-        luarocks install nanosleep
+        luarocks install time-clock
+        luarocks install time-sleep
     -
       name: Run Test
       run: |
