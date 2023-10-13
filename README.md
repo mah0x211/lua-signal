@@ -180,13 +180,13 @@ set the default action to the specified signal.
 - `err:error`: error object.
 
 
-## ok, err, timeout = wait( msec, signo, ... )
+## ok, err, timeout = wait( sec, signo, ... )
 
 waits for interrupt by the specified signals until the specified time.
 
 **Parameters**
 
-- `msec:integer`: millseconds.
+- `sec:number`: seconds.
 - `signo:integer`: valid signal numbers.
 
 **Returns**
