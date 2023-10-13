@@ -292,44 +292,56 @@ static void wait_sigaction(int signo)
 static int wait_lua(lua_State *L)
 {
     int argc            = lua_gettop(L);
-    lua_Number sec      = lauxh_checknumber(L, 1);
+    lua_Number sec      = lauxh_optnumber(L, 1, 0);
     struct sigaction sa = {.sa_handler = wait_sigaction,
                            .sa_flags   = SA_NODEFER};
+    sigset_t ss;
     sigset_t old_ss;
-    sigset_t unblock_ss;
 
-    if (sec < 0) {
-        sec = -1;
+    lauxh_argcheck(L, sec >= 0, 1, "unsigned number expected, got %f", sec);
+    lauxh_argcheck(L, argc > 1, 2, "signo expected, got no value");
+    // get current signal mask
+    if (sigprocmask(0, NULL, &ss) != 0) {
+        lua_pushnil(L);
+        lua_errno_new(L, errno, "wait.sigprocmask");
+        return 2;
     }
 
     // register signal actions
-    lauxh_argcheck(L, argc > 1, 2, "signo expected, got no value");
-    sigemptyset(&old_ss);
-    sigemptyset(&unblock_ss);
     for (int i = 2; i <= argc; i++) {
         int signo          = lauxh_checkinteger(L, i);
         sigaction_t *defsa = &OLD_SA[i - 2];
 
         if (signo < 0 || signo >= NSIG) {
             errno = EINVAL;
-        } else if (sigaddset(&unblock_ss, signo) == 0 &&
+        } else if (sigdelset(&ss, signo) == 0 &&
                    sigaction(signo, &sa, &defsa->sa) == 0) {
             defsa->use   = 1;
             defsa->signo = signo;
             continue;
         }
-        REVERT2OLD_SA();
-        lua_pushnil(L);
-        lua_errno_new(L, errno, "wait");
-        return 2;
+        goto FAIL;
+    }
+
+    WAIT_SIGNO = 0;
+    if (sec == 0) {
+        // wait forever
+        errno = 0;
+        sigsuspend(&ss);
+        if (errno == EINTR) {
+            REVERT2OLD_SA();
+            lua_pushinteger(L, WAIT_SIGNO);
+            return 1;
+        }
+        goto FAIL;
     }
 
     // unblock signals for wait
-    if (sigprocmask(SIG_UNBLOCK, &unblock_ss, &old_ss) == 0) {
+    if (sigprocmask(SIG_SETMASK, &ss, &old_ss) == 0) {
         // wait for a specified time or until interrupted by a signal
-        const struct timespec ts = {.tv_sec  = sec,
-                                    .tv_nsec = (sec - (int)sec) * 1000000000};
-        int rc                   = nanosleep(&ts, NULL);
+        const struct timespec ts = {
+            .tv_sec = sec, .tv_nsec = (sec - (uintmax_t)sec) * 1000000000};
+        int rc = nanosleep(&ts, NULL);
 
         // revert to old signal actions and signal mask
         REVERT2OLD_SA();
@@ -344,7 +356,10 @@ static int wait_lua(lua_State *L)
             return 1;
         }
     }
+
+FAIL:
     // got error
+    REVERT2OLD_SA();
     lua_pushnil(L);
     lua_errno_new(L, errno, "wait");
     return 2;

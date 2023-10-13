@@ -141,14 +141,14 @@ function testcase.wait()
     assert.greater_or_equal(t, 1.5)
     assert.less(t, 1.6)
 
-    -- test that wait signal
+    -- test that wait signal forever
     local p = assert(fork())
     if p:is_child() then
         sleep(0.2)
         signal.kill(signal.SIGINT, pid)
         os.exit(0)
     end
-    sig, err, timeout = signal.wait(1, signal.SIGINT)
+    sig, err, timeout = signal.wait(nil, signal.SIGINT)
     assert.equal(sig, signal.SIGINT)
     assert.is_nil(err)
     assert.is_nil(timeout)
@@ -177,13 +177,15 @@ local function ignoreall()
     end
 end
 
+io.stdout:setvbuf('no')
 for k, f in pairs(testcase) do
     ignoreall()
+    io.stdout:write(k .. ' ... ')
     local ok, err = xpcall(f, debug.traceback)
     if ok then
-        print(k .. ': ok')
+        print(': ok')
     else
-        print(k .. ': failed')
+        print(': failed')
         print(err)
     end
     signal.unblockall()

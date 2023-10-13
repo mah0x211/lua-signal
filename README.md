@@ -186,7 +186,7 @@ waits for interrupt by the specified signals until the specified time.
 
 **Parameters**
 
-- `sec:number`: seconds.
+- `sec:number`: seconds. (default `0` means wait forever)
 - `signo:integer`: valid signal numbers.
 
 **Returns**
