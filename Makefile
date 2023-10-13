@@ -10,10 +10,7 @@ endif
 
 .PHONY: all install
 
-all: preprocess $(TARGET)
-
-preprocess:
-	lua ./signogen.lua
+all: $(TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(WARNINGS) $(COVFLAGS) $(CPPFLAGS) -o $@ -c $<
