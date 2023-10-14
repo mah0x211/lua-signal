@@ -187,7 +187,7 @@ waits for interrupt by the specified signals or pending signals to be delivered.
 **Parameters**
 
 - `sec:number`: seconds. (default `0` means wait forever)
--- `...:integer`: signal numbers. if not specified, wait for the pending signals.
+- `...:integer`: signal numbers. if not specified, wait for the pending signals.
 
 **Returns**
 
