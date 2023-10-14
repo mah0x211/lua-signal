@@ -6,10 +6,15 @@ local configh = require('configh')
 local cfgh = configh(os.getenv('CC'))
 
 cfgh:output_status(true)
+cfgh:set_feature('_GNU_SOURCE')
 for header, funcs in pairs({
     ['signal.h'] = {
         'sigwaitinfo',
         'sigtimedwait',
+        'sigisemptyset',
+    },
+    ['pthread.h'] = {
+        'pthread_condattr_setclock',
     },
 }) do
     if cfgh:check_header(header) then

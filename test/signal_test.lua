@@ -11,15 +11,26 @@ local SIGNALS = {}
 for k, v in pairs(signal) do
     if type(v) == 'number' and k ~= 'SIGKILL' and k ~= 'SIGSTOP' and
         string.find(k, '^SIG') then
-        SIGNALS[k] = v
+        SIGNALS[#SIGNALS + 1] = v
     end
 end
 
-local testcase = {}
+local testcase = setmetatable({}, {
+    __newindex = function(t, k, v)
+        assert.is_function(v)
+        assert(t[k] == nil, 'duplicate testcase: ' .. k)
+        rawset(t, k, true)
+        rawset(t, #t + 1, {
+            name = k,
+            func = v,
+        })
+    end,
+})
 
 function testcase.block()
+    assert(signal.unblockall())
     -- test that block signal
-    for _, signo in pairs(SIGNALS) do
+    for _, signo in ipairs(SIGNALS) do
         assert.is_false(signal.isblock(signo))
         assert(signal.block(signo))
         assert(signal.isblock(signo))
@@ -32,8 +43,9 @@ function testcase.block()
 end
 
 function testcase.isblock()
+    assert(signal.unblockall())
     -- test that return false if signal is not blocked
-    assert.is_false(signal.isblock(signal.SIGINT))
+    assert.is_false(signal.isblock(signal.SIGUSR2))
 
     -- test that return error if signal number is invalid
     local ok, err = signal.isblock(-1)
@@ -44,7 +56,7 @@ end
 function testcase.blockall()
     -- test that block all signal
     assert(signal.blockall())
-    for _, signo in pairs(SIGNALS) do
+    for _, signo in ipairs(SIGNALS) do
         assert(signal.isblock(signo))
     end
 end
@@ -52,7 +64,7 @@ end
 function testcase.unblock()
     -- test that unblock signal
     assert(signal.blockall())
-    for _, signo in pairs(SIGNALS) do
+    for _, signo in ipairs(SIGNALS) do
         assert.is_true(signal.isblock(signo))
         assert(signal.unblock(signo))
         assert.is_false(signal.isblock(signo))
@@ -67,46 +79,15 @@ end
 function testcase.unblockall()
     -- test that unblock all signal
     assert(signal.unblockall())
-    for _, signo in pairs(SIGNALS) do
+    for _, signo in ipairs(SIGNALS) do
         assert.is_false(signal.isblock(signo))
     end
 end
 
-function testcase.raise()
-    assert(signal.block(signal.SIGUSR1))
-
-    -- test that raise signal
-    assert(signal.raise(signal.SIGUSR1))
-
-    -- test that return error if signal number is invalid
-    local ok, err = signal.raise(-1)
-    assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
-end
-
-function testcase.kill()
-    -- test that send signal
-    assert(signal.kill(signal.SIGUSR1))
-
-    -- test that return error if signal number is invalid
-    local ok, err = signal.kill(-1)
-    assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
-end
-
-function testcase.killpg()
-    -- test that send signal
-    -- assert(signal.killpg(signal.SIGUSR1))
-
-    -- test that return error if signal number is invalid
-    local ok, err = signal.killpg(-1)
-    assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
-end
-
-function testcase.ignore()
+function testcase.ignore_default()
     -- test that ignore signal
-    assert(signal.ignore(signal.SIGINT))
+    assert(signal.ignore(signal.SIGUSR2))
+    assert(signal.default(signal.SIGUSR2))
 
     -- test that return error if signal number is invalid
     local ok, err = signal.ignore(-1)
@@ -116,6 +97,7 @@ end
 
 function testcase.alarm()
     -- test that set alarm
+    assert(signal.block(signal.SIGALRM))
     signal.alarm(1)
     local sig, err, timeout = signal.wait(1.5, signal.SIGALRM)
     assert.equal(sig, signal.SIGALRM)
@@ -123,17 +105,12 @@ function testcase.alarm()
     assert.is_nil(timeout)
 end
 
-function testcase.default()
-    -- test that set default action
-    assert(signal.default(signal.SIGUSR1))
-end
-
 function testcase.wait()
     local pid = getpid()
 
     -- test that wait signal
     local t = gettime()
-    local sig, err, timeout = signal.wait(1.5, signal.SIGINT)
+    local sig, err, timeout = signal.wait(1.5, signal.SIGUSR2)
     t = gettime() - t
     assert.is_nil(sig)
     assert.is_nil(err)
@@ -145,48 +122,88 @@ function testcase.wait()
     local p = assert(fork())
     if p:is_child() then
         sleep(0.2)
-        signal.kill(signal.SIGINT, pid)
+        signal.kill(signal.SIGUSR2, pid)
         os.exit(0)
     end
-    sig, err, timeout = signal.wait(nil, signal.SIGINT)
-    assert.equal(sig, signal.SIGINT)
+    sig, err, timeout = signal.wait(nil, signal.SIGUSR2)
+    assert.equal(sig, signal.SIGUSR2)
     assert.is_nil(err)
     assert.is_nil(timeout)
 
     -- test that can be wait even blocked signal
-    signal.blockall()
     p = assert(fork())
     if p:is_child() then
         sleep(0.2)
         signal.kill(signal.SIGUSR1, pid)
         os.exit(0)
     end
-    sig, err, timeout = signal.wait(1, signal.SIGINT, signal.SIGUSR1)
+    sig, err, timeout = signal.wait(1, signal.SIGUSR2, signal.SIGUSR1)
     assert.equal(sig, signal.SIGUSR1)
     assert.is_nil(err)
     assert.is_nil(timeout)
-    -- confirm signal is blocked
-    assert(signal.isblock(signal.SIGINT))
-    assert(signal.isblock(signal.SIGUSR1))
-    signal.unblockall()
 end
 
-local function ignoreall()
-    for _, v in pairs(SIGNALS) do
-        assert(signal.ignore(v))
-    end
+function testcase.raise()
+    -- test that raise signal
+    assert(signal.block(signal.SIGUSR2))
+    assert(signal.raise(signal.SIGUSR2))
+    local sig, err = signal.wait(nil, signal.SIGUSR2)
+    assert(sig == signal.SIGUSR2, err)
+
+    -- test that return error if signal number is invalid
+    local ok
+    ok, err = signal.raise(-1)
+    assert.is_false(ok)
+    assert.equal(err.type, errno.EINVAL)
+end
+
+function testcase.kill()
+    -- test that send signal
+    assert(signal.block(signal.SIGUSR2))
+    assert(signal.kill(signal.SIGUSR2))
+    local sig, err = signal.wait(nil, signal.SIGUSR2)
+    assert(sig == signal.SIGUSR2, err)
+
+    -- test that return error if signal number is invalid
+    local ok
+    ok, err = signal.kill(-1)
+    assert.is_false(ok)
+    assert.equal(err.type, errno.EINVAL)
+end
+
+function testcase.killpg()
+    print('NOTE: killpg cannot be tested in this environment')
+
+    -- -- test that send signal
+    -- assert(signal.block(signal.SIGUSR2))
+    -- assert(signal.killpg(signal.SIGUSR2))
+    -- local sig, err = signal.wait(nil, signal.SIGUSR2)
+    -- assert(sig == signal.SIGUSR2, err)
+
+    -- -- test that return error if signal number is invalid
+    -- local ok
+    -- ok, err = signal.killpg(-1)
+    -- assert.is_false(ok)
+    -- assert.equal(err.type, errno.EINVAL)
+end
+
+local function consume_signals()
+    signal.wait()
 end
 
 io.stdout:setvbuf('no')
-for k, f in pairs(testcase) do
-    ignoreall()
-    io.stdout:write(k .. ' ... ')
-    local ok, err = xpcall(f, debug.traceback)
+for _, t in ipairs(testcase) do
+    -- assert(signal.blockall())
+    io.stdout:write(t.name .. ' ... ')
+    local ok, err = xpcall(t.func, debug.traceback)
     if ok then
-        print(': ok')
+        print('ok')
     else
-        print(': failed')
+        print('failed')
         print(err)
     end
-    signal.unblockall()
+    assert(signal.unblockall())
+    consume_signals()
 end
+print(string.rep('-', 40))
+print('all tests passed')

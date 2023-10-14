@@ -17,6 +17,13 @@ dependencies = {
 }
 build = {
     type = "make",
+    platforms = {
+        linux = {
+            build_variables = {
+                LDFLAGS = "$(LIBFLAG) -lrt",
+            },
+        },
+    },
     build_variables = {
         CFLAGS = "$(CFLAGS)",
         WARNINGS = "-Wall -Wno-trigraphs -Wmissing-field-initializers -Wreturn-type -Wmissing-braces -Wparentheses -Wno-switch -Wunused-function -Wunused-label -Wunused-parameter -Wunused-variable -Wunused-value -Wuninitialized -Wunknown-pragmas -Wshadow -Wsign-compare",
