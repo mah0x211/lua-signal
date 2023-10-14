@@ -117,7 +117,7 @@ end
 function testcase.alarm()
     -- test that set alarm
     signal.alarm(1)
-    local sig, err, timeout = signal.wait(1500, signal.SIGALRM)
+    local sig, err, timeout = signal.wait(1.5, signal.SIGALRM)
     assert.equal(sig, signal.SIGALRM)
     assert.is_nil(err)
     assert.is_nil(timeout)

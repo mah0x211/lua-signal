@@ -8,9 +8,13 @@ ifdef SIGNAL_COVERAGE
 COVFLAGS=--coverage
 endif
 
-.PHONY: all install
+.PHONY: all preprocess install
 
-all: $(TARGET)
+all: preprocess
+	@$(MAKE) $(TARGET)
+
+preprocess:
+	lua ./configure.lua
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(WARNINGS) $(COVFLAGS) $(CPPFLAGS) -o $@ -c $<
@@ -21,4 +25,4 @@ $(TARGET): $(OBJS)
 install:
 	$(INSTALL) -d $(INST_LIBDIR)
 	$(INSTALL) $(TARGET) $(INST_LIBDIR)
-	rm -f $(OBJ) $(TARGET) $(GCDAS)
+	rm -f $(OBJS) $(TARGET) $(GCDAS)

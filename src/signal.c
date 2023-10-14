@@ -20,6 +20,7 @@
  *  IN THE SOFTWARE.
  */
 
+#include "config.h"
 #include <errno.h>
 #include <signal.h>
 #include <string.h>
@@ -265,6 +266,71 @@ static int default_lua(lua_State *L)
     return 2;
 }
 
+#if defined(HAVE_SIGWAITINFO) && defined(HAVE_SIGTIMEDWAIT)
+
+static int wait_lua(lua_State *L)
+{
+    int argc       = lua_gettop(L);
+    lua_Number sec = lauxh_optnumber(L, 1, 0);
+    sigset_t ss;
+    sigset_t old_ss;
+
+    lauxh_argcheck(L, sec >= 0, 1, "unsigned number expected, got %f", sec);
+    lauxh_argcheck(L, argc > 1, 2, "signo expected, got no value");
+    // register signal actions
+    sigemptyset(&ss);
+    for (int i = 2; i <= argc; i++) {
+        int signo = lauxh_checkinteger(L, i);
+
+        if (signo < 0 || signo >= NSIG) {
+            errno = EINVAL;
+        } else if (sigaddset(&ss, signo) == 0) {
+            continue;
+        }
+        // got error
+        lua_pushnil(L);
+        lua_errno_new(L, errno, "wait");
+        return 2;
+    }
+    if (sigprocmask(SIG_SETMASK, &ss, &old_ss) != 0) {
+        // got error
+        lua_pushnil(L);
+        lua_errno_new(L, errno, "wait.sigprocmask");
+        return 2;
+    }
+
+    errno     = 0;
+    int signo = -1;
+    if (sec == 0) {
+        // wait forever
+        signo = sigwaitinfo(&ss, NULL);
+    } else {
+        // wait for a specified time or until interrupted by a signal
+        const struct timespec ts = {
+            .tv_sec = sec, .tv_nsec = (sec - (uintmax_t)sec) * 1000000000};
+        signo = sigtimedwait(&ss, NULL, &ts);
+    }
+    // revert to old signal mask
+    sigprocmask(SIG_SETMASK, &old_ss, NULL);
+
+    if (signo != -1) {
+        lua_pushinteger(L, signo);
+        return 1;
+    } else if (errno == EAGAIN) {
+        // timeout
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushboolean(L, 1);
+        return 3;
+    }
+    // got error
+    lua_pushnil(L);
+    lua_errno_new(L, errno, "wait");
+    return 2;
+}
+
+#else
+
 typedef struct {
     int use;
     int signo;
@@ -273,13 +339,13 @@ typedef struct {
 
 static sigaction_t OLD_SA[NSIG] = {0};
 
-#define REVERT2OLD_SA()                                                        \
-    do {                                                                       \
-        for (int k = 0; k < NSIG && OLD_SA[k].use; k++) {                      \
-            sigaction(OLD_SA[k].signo, &OLD_SA[k].sa, NULL);                   \
-            OLD_SA[k].use = 0;                                                 \
-        }                                                                      \
-    } while (0)
+# define REVERT2OLD_SA()                                                       \
+     do {                                                                      \
+         for (int k = 0; k < NSIG && OLD_SA[k].use; k++) {                     \
+             sigaction(OLD_SA[k].signo, &OLD_SA[k].sa, NULL);                  \
+             OLD_SA[k].use = 0;                                                \
+         }                                                                     \
+     } while (0)
 
 static int WAIT_SIGNO = 0;
 
@@ -329,9 +395,7 @@ static int wait_lua(lua_State *L)
         errno = 0;
         sigsuspend(&ss);
         if (errno == EINTR) {
-            REVERT2OLD_SA();
-            lua_pushinteger(L, WAIT_SIGNO);
-            return 1;
+            goto SUCCESS;
         }
         goto FAIL;
     }
@@ -344,26 +408,34 @@ static int wait_lua(lua_State *L)
         int rc = nanosleep(&ts, NULL);
 
         // revert to old signal actions and signal mask
-        REVERT2OLD_SA();
         sigprocmask(SIG_SETMASK, &old_ss, NULL);
         if (rc == 0) {
-            lua_pushnil(L);
-            lua_pushnil(L);
-            lua_pushboolean(L, 1);
-            return 3;
+            goto TIMEOUT;
         } else if (errno == EINTR) {
-            lua_pushinteger(L, WAIT_SIGNO);
-            return 1;
+            goto SUCCESS;
         }
     }
 
+SUCCESS:
+    REVERT2OLD_SA();
+    lua_pushinteger(L, WAIT_SIGNO);
+    return 1;
+
 FAIL:
-    // got error
     REVERT2OLD_SA();
     lua_pushnil(L);
     lua_errno_new(L, errno, "wait");
     return 2;
+
+TIMEOUT:
+    REVERT2OLD_SA();
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushboolean(L, 1);
+    return 3;
 }
+
+#endif
 
 LUALIB_API int luaopen_signal(lua_State *L)
 {
