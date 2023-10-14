@@ -43,7 +43,7 @@ block the specified signal(s).
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err = unblock( ... )
@@ -57,7 +57,7 @@ unblock the specified signal.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err = blockall()
@@ -67,7 +67,7 @@ block the signals that specified by sigfillset on internally.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err = unblockall()
@@ -77,7 +77,7 @@ unblock the signals that specified by sigfillset on internally.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err, ... = isblock( ... )
@@ -91,7 +91,7 @@ return `true` if the specified signal(s) is blocked.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 - `...:integer`: unblocked signals.
 
 
@@ -106,7 +106,7 @@ send the specified signal to the current process.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err = kill( signo [, pid] )
@@ -121,7 +121,7 @@ send the specified signal to the specified process.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err = killpg( signo [, pgrp] )
@@ -136,7 +136,7 @@ send signal to the specified process group
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## sec = alarm( sec )
@@ -163,7 +163,7 @@ ignore the specified signal.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
 ## ok, err = default( signo )
@@ -177,21 +177,21 @@ set the default action to the specified signal.
 **Returns**
 
 - `ok:boolean`: `true` on success.
-- `err:error`: error object.
+- `err:any`: error object.
 
 
-## ok, err, timeout = wait( sec, signo, ... )
+## ok, err, timeout = wait( sec, ... )
 
-waits for interrupt by the specified signals until the specified time.
+waits for interrupt by the specified signals or pending signals to be delivered.
 
 **Parameters**
 
-- `sec:number`: seconds.
-- `signo:integer`: valid signal numbers.
+- `sec:number`: seconds. (default `0` means wait forever)
+-- `...:integer`: signal numbers. if not specified, wait for the pending signals.
 
 **Returns**
 
 - `signo:integer`: received signal number or `nil`.
-- `err:error`: error object.
+- `err:any`: error object.
 - `timeout:boolean`: `true` on timed out.
 

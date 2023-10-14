@@ -4,3 +4,4 @@ coverage/
 *.gcno
 *.gcda
 *.profraw
+*.o
