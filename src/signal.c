@@ -475,7 +475,13 @@ static int wait_lua(lua_State *L)
     sigemptyset(&ss);
     if (argc > 1) {
         for (int i = 2; i <= argc; i++) {
-            int sig = lauxh_checkinteger(L, i);
+            int sig = 0;
+            if (lua_isnoneornil(L, i)) {
+                // ignore nil value
+                continue;
+            }
+
+            sig = lauxh_checkinteger(L, i);
             if (sig < 0 || sig >= NSIG) {
                 errno = EINVAL;
             } else if (sigaddset(&ss, sig) == 0) {
@@ -490,10 +496,11 @@ static int wait_lua(lua_State *L)
         lua_pushnil(L);
         lua_errno_new(L, errno, "wait.sigpending");
         return 2;
-    } else if (sigisemptyset(&ss) == 1) {
-        // do nothing
-        lua_pushnil(L);
-        return 1;
+    }
+
+    if (sigisemptyset(&ss) == 1) {
+        // do nothing if no signals are specified or no pending signals
+        return 0;
     }
 
     return wait_signals_lua(L, &ss, sec);
@@ -501,7 +508,7 @@ static int wait_lua(lua_State *L)
 
 LUALIB_API int luaopen_signal(lua_State *L)
 {
-    struct luaL_Reg method[] = {
+    struct luaL_Reg funcs[] = {
         {"block",      block_lua     },
         {"blockAll",   blockall_lua  },
         {"blockall",   blockall_lua  },
@@ -523,7 +530,7 @@ LUALIB_API int luaopen_signal(lua_State *L)
 
     // add methods
     lua_newtable(L);
-    for (struct luaL_Reg *ptr = method; ptr->name; ptr++) {
+    for (struct luaL_Reg *ptr = funcs; ptr->name; ptr++) {
         lauxh_pushfn2tbl(L, ptr->name, ptr->func);
     }
 
