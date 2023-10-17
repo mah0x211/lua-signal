@@ -184,6 +184,10 @@ set the default action to the specified signal.
 
 waits for interrupt by the specified signals or pending signals to be delivered.
 
+**NOTE**
+
+this function returns immediately and with no return value if no signals are specified and no signals are pending.
+
 **Parameters**
 
 - `sec:number`: seconds. (default `0` means wait forever)

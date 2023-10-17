@@ -130,6 +130,12 @@ function testcase.wait()
     assert.is_nil(err)
     assert.is_nil(timeout)
 
+    -- test that return nil if no signals are given and no signals are pending
+    sig, err, timeout = signal.wait(0.1)
+    assert.is_nil(sig)
+    assert.is_nil(err)
+    assert.is_nil(timeout)
+
     -- test that can be wait even blocked signal
     p = assert(fork())
     if p:is_child() then
