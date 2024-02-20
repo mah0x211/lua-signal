@@ -118,8 +118,19 @@ function testcase.wait()
     assert.greater_or_equal(t, 1.5)
     assert.less(t, 1.6)
 
-    -- test that wait signal forever
+    -- test that wait SIGCHLD signal
     local p = assert(fork())
+    if p:is_child() then
+        sleep(0.2)
+        os.exit(0)
+    end
+    sig, err, timeout = signal.wait(1, signal.SIGCHLD)
+    assert.equal(sig, signal.SIGCHLD)
+    assert.is_nil(err)
+    assert.is_nil(timeout)
+
+    -- test that wait signal forever
+    p = assert(fork())
     if p:is_child() then
         sleep(0.2)
         signal.kill(signal.SIGUSR2, pid)

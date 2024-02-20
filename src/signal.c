@@ -288,6 +288,7 @@ static int wait_signals_lua(lua_State *L, sigset_t *ss, lua_Number sec)
         return 2;
     }
 
+RETRY:
     if (sec == 0) {
         // wait forever
         signo = sigwaitinfo(ss, NULL);
@@ -297,6 +298,12 @@ static int wait_signals_lua(lua_State *L, sigset_t *ss, lua_Number sec)
                                     .tv_nsec = (sec - (uintmax_t)sec) * NSEC};
         signo                    = sigtimedwait(ss, NULL, &ts);
     }
+    if (signo == -1 && errno == EINTR) {
+        // interrupted by a signal handler
+        // retry to wait for signals (same behavior as sigwait)
+        goto RETRY;
+    }
+
     // revert to old signal mask
     sigprocmask(SIG_SETMASK, &old_ss, NULL);
 
@@ -506,6 +513,48 @@ static int wait_lua(lua_State *L)
     return wait_signals_lua(L, &ss, sec);
 }
 
+typedef void (*sa_handler_t)(int);
+static sa_handler_t defalut_sigchld_handler = NULL;
+
+static void noop_sigchld_handler(int signo)
+{
+    (void)signo;
+}
+
+static int gc_lua(lua_State *L)
+{
+    (void)L;
+    struct sigaction act = {};
+    sigaction(SIGCHLD, NULL, &act);
+    if (act.sa_handler == noop_sigchld_handler) {
+        // restore default handler
+        signal(SIGCHLD, defalut_sigchld_handler);
+    }
+    return 0;
+}
+
+static void setup_sigchld_handler(lua_State *L)
+{
+    // NOTE: set NOOP handler to SIGCHLD to capture it by sigwait.
+    // this is required to some platforms that cannot capture SIGCHLD by
+    // sigwait.
+    struct sigaction act = {};
+    sigaction(SIGCHLD, NULL, &act);
+    if (act.sa_handler == SIG_DFL || act.sa_handler == SIG_IGN ||
+        act.sa_handler == NULL) {
+        // WARNING: default handler must be restored by GC. if not, it will be
+        // segfault occurred when the process is terminated.
+        defalut_sigchld_handler = act.sa_handler;
+        lua_newuserdata(L, sizeof(void *));
+        lua_createtable(L, 0, 1);
+        lua_pushcfunction(L, gc_lua);
+        lua_setfield(L, -2, "__gc");
+        lua_setmetatable(L, -2);
+
+        signal(SIGCHLD, noop_sigchld_handler);
+    }
+}
+
 LUALIB_API int luaopen_signal(lua_State *L)
 {
     struct luaL_Reg funcs[] = {
@@ -527,6 +576,7 @@ LUALIB_API int luaopen_signal(lua_State *L)
     };
 
     lua_errno_loadlib(L);
+    setup_sigchld_handler(L);
 
     // add methods
     lua_newtable(L);
