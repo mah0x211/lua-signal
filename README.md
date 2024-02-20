@@ -20,6 +20,10 @@ local signal = require('signal')
 signal.raise(signal.SIGTERM)
 ```
 
+## NOTE
+
+On some platforms, `SIGCHLD` cannot be captured by the sigwait function. To solve this problem, set the NOOP (no operation) handler if the `SIGCHLD` signal handler is set to `SIG_DFL` or `SIG_IGN` when the module is loaded.
+
 
 ## Error Handling
 
