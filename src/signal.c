@@ -19,21 +19,7 @@
  *  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  *  IN THE SOFTWARE.
  */
-
-#include "config.h"
-
-#if defined(HAVE_SIGISEMPTYSET) && !defined(_GNU_SOURCE)
-# define _GNU_SOURCE
-#endif
-
-#include <errno.h>
-#include <signal.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-// lua
-#include <lua_errno.h>
+#include "lua_signal.h"
 
 static inline int is_valid_signo(int signo)
 {
@@ -585,7 +571,7 @@ LUALIB_API int luaopen_signal(lua_State *L)
     }
 
 // set signal constants
-#include "gen_signals.h"
+#include "export_signals.h"
 
     return 1;
 }
