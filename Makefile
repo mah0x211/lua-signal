@@ -15,6 +15,7 @@ all: preprocess
 
 preprocess:
 	lua ./configure.lua
+	lua ./gen_headers.lua
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(WARNINGS) $(COVFLAGS) $(CPPFLAGS) -o $@ -c $<
