@@ -1,0 +1,15 @@
+/**
+ * src/inc_signame2num.h
+ * this file is overwritten by gen_headers.lua at compile time.
+ * ${DATE}
+ */
+// clang-format off
+static inline char *tosigname(int sig)
+{
+    switch (sig) {
+    default:
+        return NULL;
+
+${SIGCASES}
+    }
+}

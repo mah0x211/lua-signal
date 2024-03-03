@@ -1,0 +1,6 @@
+/**
+ * src/inc_export_signames.h
+ * this file is overwritten by gen_headers.lua at compile time.
+ * ${DATE}
+ */
+${SIGNAMES}
