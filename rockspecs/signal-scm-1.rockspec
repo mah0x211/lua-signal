@@ -15,6 +15,12 @@ dependencies = {
     "errno >= 0.5.0",
     "lauxhlib >= 0.6.0",
 }
+external_dependencies = {
+    PTHREAD = {
+        header = "pthread.h",
+        library = "pthread",
+    },
+}
 build = {
     type = "make",
     platforms = {
@@ -27,8 +33,8 @@ build = {
     build_variables = {
         CFLAGS = "$(CFLAGS)",
         WARNINGS = "-Wall -Wno-trigraphs -Wmissing-field-initializers -Wreturn-type -Wmissing-braces -Wparentheses -Wno-switch -Wunused-function -Wunused-label -Wunused-parameter -Wunused-variable -Wunused-value -Wuninitialized -Wunknown-pragmas -Wshadow -Wsign-compare",
-        CPPFLAGS = "-I$(LUA_INCDIR)",
-        LDFLAGS = "$(LIBFLAG)",
+        CPPFLAGS = "-I$(LUA_INCDIR) -I$(PTHREAD_INCDIR)",
+        LDFLAGS = "$(LIBFLAG) -L$(PTHREAD_LIBDIR) -lpthread",
         LIB_EXTENSION = "$(LIB_EXTENSION)",
         SIGNAL_COVERAGE = "$(SIGNAL_COVERAGE)",
     },
