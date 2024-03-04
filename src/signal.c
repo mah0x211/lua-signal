@@ -45,6 +45,22 @@ static inline int checksignal(lua_State *L, int idx, allow_sig0_t is_allow)
     return signo;
 }
 
+static int tosigname_lua(lua_State *L)
+{
+    const int argc = lua_gettop(L);
+
+    for (int i = 1; i <= argc; i++) {
+        char *name = tosigname(checksignal(L, i, NOT_ALLOW_SIG0));
+        if (name) {
+            lua_pushstring(L, name);
+        } else {
+            lua_pushnil(L);
+        }
+    }
+
+    return argc;
+}
+
 static int block_lua(lua_State *L)
 {
     int argc = lua_gettop(L);
@@ -560,6 +576,7 @@ static void setup_sigchld_handler(lua_State *L)
 LUALIB_API int luaopen_signal(lua_State *L)
 {
     struct luaL_Reg funcs[] = {
+        {"tosigname",  tosigname_lua },
         {"block",      block_lua     },
         {"blockAll",   blockall_lua  },
         {"blockall",   blockall_lua  },

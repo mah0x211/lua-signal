@@ -42,7 +42,7 @@ block the specified signal(s).
 
 **Parameters**
 
-- `...:integer`: valid signal numbers.
+- `...:string|integer`: valid signal names or numbers.
 
 **Returns**
 
@@ -56,7 +56,7 @@ unblock the specified signal.
 
 **Parameters**
 
-- `...:integer`: valid signal numbers.
+- `...:string|integer`: valid signal names or numbers.
 
 **Returns**
 
@@ -90,7 +90,7 @@ return `true` if the specified signal(s) is blocked.
 
 **Parameters**
 
-- `...:integer`: valid signal numbers.
+- `...:string|integer`: valid signal names or numbers.
 
 **Returns**
 
@@ -99,13 +99,13 @@ return `true` if the specified signal(s) is blocked.
 - `...:integer`: unblocked signals.
 
 
-## ok, err = raise( signo )
+## ok, err = raise( sig )
 
 send the specified signal to the current process.
 
 **Parameters**
 
-- `signo:integer`: valid signal number.
+- `sig:string|integer`: valid signal name or number.
 
 **Returns**
 
@@ -113,13 +113,13 @@ send the specified signal to the current process.
 - `err:any`: error object.
 
 
-## ok, err = kill( signo [, pid] )
+## ok, err = kill( sig [, pid] )
 
 send the specified signal to the specified process.
 
 **Parameters**
 
-- `signo:integer`: valid signal number.
+- `sig:string|integer`: valid signal name or number.
 - `pid:integer`: process id. (`default: id of the calling process`)
 
 **Returns**
@@ -128,13 +128,13 @@ send the specified signal to the specified process.
 - `err:any`: error object.
 
 
-## ok, err = killpg( signo [, pgrp] )
+## ok, err = killpg( sig [, pgrp] )
 
 send signal to the specified process group
 
 **Parameters**
 
-- `signo:integer`: valid signal number.
+- `sig:string|integer`: valid signal name or number.
 - `pgrp:integer`: process group id (`default: id of the calling process`)
 
 **Returns**
@@ -156,13 +156,13 @@ deliver the signal `SIGALRM` after the specified number of seconds.
 - `sec:integer`: remaining time of timer from the previous function call.
 
 
-## ok, err = ignore( signo )
+## ok, err = ignore( sig )
 
 ignore the specified signal.
 
 **Parameters**
 
-- `signo:integer`: valid signal number.
+- `sig:string|integer`: valid signal name or number.
 
 **Returns**
 
@@ -170,13 +170,13 @@ ignore the specified signal.
 - `err:any`: error object.
 
 
-## ok, err = default( signo )
+## ok, err = default( sig )
 
 set the default action to the specified signal.
 
 **Parameters**
 
-- `signo:integer`: valid signal number.
+- `sig:string|integer`: valid signal name or number.
 
 **Returns**
 
@@ -195,11 +195,25 @@ this function returns immediately and with no return value if no signals are spe
 **Parameters**
 
 - `sec:number`: seconds. (default `0` means wait forever)
-- `...:integer`: signal numbers. if not specified, wait for the pending signals.
+- `...:string|integer`: signal names or numbers. if not specified, wait for the pending signals.
 
 **Returns**
 
 - `signo:integer`: received signal number or `nil`.
 - `err:any`: error object.
 - `timeout:boolean`: `true` on timed out.
+- `signame:string`: received signal name or `nil`.
+
+
+## ... = tosigname( ... )
+
+convert the signal numbers to the signal names.
+
+**Parameters**
+
+- `...:string|integer`: signal names or numbers.
+
+**Returns**
+
+- `...:string`: signal names.
 
