@@ -30,16 +30,18 @@ local testcase = setmetatable({}, {
 function testcase.blockall()
     -- test that block all signal
     assert(signal.blockall())
-    for _, signo in ipairs(SIGNALS) do
+    for signame, signo in ipairs(SIGNALS) do
         assert(signal.isblock(signo))
+        assert(signal.isblock(signame))
     end
 end
 
 function testcase.unblockall()
     -- test that unblock all signal
     assert(signal.unblockall())
-    for _, signo in pairs(SIGNALS) do
+    for signame, signo in pairs(SIGNALS) do
         assert.is_false(signal.isblock(signo))
+        assert.is_false(signal.isblock(signame))
     end
 end
 
@@ -134,10 +136,11 @@ function testcase.alarm()
     -- test that set alarm
     assert(signal.block('SIGALRM'))
     signal.alarm(1)
-    local sig, err, timeout = signal.wait(1.5, 'SIGALRM')
+    local sig, err, timeout, signame = signal.wait(1.5, 'SIGALRM')
     assert.equal(sig, signal.SIGALRM)
     assert.is_nil(err)
     assert.is_nil(timeout)
+    assert.equal(signame, 'SIGALRM')
 end
 
 function testcase.wait()
@@ -245,6 +248,29 @@ function testcase.killpg()
     -- ok, err = signal.killpg(-1)
     -- assert.is_false(ok)
     -- assert.equal(err.type, errno.EINVAL)
+end
+
+function testcase.tosigname()
+    for signame, signo in pairs(SIGNALS) do
+        -- test that convert signal number to signal name
+        assert.equal(signal.tosigname(signo), signame)
+
+        -- test that convert signal name to signal name
+        assert.equal(signal.tosigname(signame), signame)
+    end
+
+    -- test that convert multiple signal numbers to signal names
+    local name1, name2 = signal.tosigname(signal.SIGUSR1, signal.SIGUSR2)
+    assert.equal(name1, 'SIGUSR1')
+    assert.equal(name2, 'SIGUSR2')
+
+    -- test that return nil if signal number is invalid
+    local name = signal.tosigname(-1)
+    assert.is_nil(name)
+
+    -- test that throws an error if signal name is not string or integer
+    local err = assert.throws(signal.tosigname, signal.SIGUSR1 + 0.1)
+    assert.match(err, 'bad argument #1')
 end
 
 local function consume_signals()
