@@ -25,100 +25,104 @@ local function openFile()
     return signames
 end
 
-local function codeGen(signames)
-    local export_signals_h = [[
-/**
- * src/export_signals.h
- * this file is overwritten by gen_headers.lua at compile time.
- * ${DATE}
- */
-#ifndef lua_signals_h
-#define lua_signals_h
+local function readall(filename)
+    local file = assert(io.open(filename))
+    local content = assert(file:read('*a'))
+    file:close()
+    return content
+end
 
-#include "config.h"
+local function writeout(filename, content)
+    local file = assert(io.open(filename, 'w'))
+    assert(file:write(content))
+    file:close()
+end
 
-#if defined(HAVE_SIGISEMPTYSET) && !defined(_GNU_SOURCE)
-# define _GNU_SOURCE
-#endif
-
-#include <errno.h>
-#include <signal.h>
-#include <string.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-// lua
-#include <lauxlib.h>
-#include <lua_errno.h>
-
-static const char *const SIGNAMES[] = {
-${SIGNAMES},
-    NULL,
-};
-
-static inline int checksigname(lua_State *L, int index)
-{
-    switch (luaL_checkoption(L, index, NULL, SIGNAMES)) {
-    default:
-        return -1;
-
-${SIGCASES}
-    }
-}
-
-#endif /* lua_signals_h */
-]]
-
-    local checkoption = [[
+local function gen_inc_checksigname_h(signames)
+    local CASE = [[
     case ${SIGIDX}:
 #ifdef ${SIGNAME}
         return ${SIGNAME};
 #else
         return -1;
 #endif
-]];
-    local export = [[
+]]
+    local namelist = {}
+    local caselist = {}
+    for i, v in ipairs(signames) do
+        namelist[i] = string.format('    %q', v)
+        caselist[i] = CASE:gsub('${([^}]+)}', {
+            SIGIDX = i - 1,
+            SIGNAME = v,
+        })
+    end
+
+    local names = table.concat(namelist, ',\n')
+    local cases = table.concat(caselist, '\n')
+    local content = readall('./src/inc_checksigname_h'):gsub('${([^}]+)}', {
+        DATE = os.date('%c'),
+        SIGNAMES = names,
+        SIGCASES = cases,
+    })
+    writeout('./src/inc_checksigname.h', content)
+end
+
+local function gen_inc_tosigname_h(signames)
+    local CASE = [[
+#ifdef ${SIGNAME}
+    case ${SIGNAME}:
+        return "${SIGNAME}";
+#endif]]
+
+    local cases = {}
+    for i, name in ipairs(signames) do
+        cases[i] = CASE:gsub('${([^}]+)}', {
+            SIGNAME = name,
+        })
+    end
+
+    local content = readall('./src/inc_tosigname_h'):gsub('${([^}]+)}', {
+        DATE = os.date('%c'),
+        SIGCASES = table.concat(cases, '\n'),
+    })
+    writeout('./src/inc_tosigname.h', content)
+end
+
+local function gen_inc_export_signals_h(signames)
+    local EXPORT_SIGNAME = [[
 #ifdef ${SIGNAME}
     lauxh_pushint2tbl(L, "${SIGNAME}", ${SIGNAME});
 #endif]]
 
-    local namelist = {}
-    local caselist = {}
-    local exports = {}
+    local list = {}
     for i, v in ipairs(signames) do
-        namelist[i] = string.format('    %q', v)
-        caselist[i] = checkoption:gsub('${([^}]+)}', {
-            SIGIDX = i - 1,
-            SIGNAME = v,
-        }):format(i)
-        exports[i] = export:gsub('${([^}]+)}', {
+        list[i] = EXPORT_SIGNAME:gsub('${([^}]+)}', {
             SIGNAME = v,
         })
     end
-    local names = table.concat(namelist, ',\n')
-    local cases = table.concat(caselist, '\n')
 
-    return export_signals_h:gsub('${([^}]+)}', {
+    local code = table.concat(list, '\n\n')
+    local content = readall('./src/inc_export_signames_h'):gsub('${([^}]+)}', {
         DATE = os.date('%c'),
-        SIGNAMES = names,
-        SIGCASES = cases,
-    }), [[
-/**
- * src/export_signals.h
- * this file is overwritten by gen_headers.lua at compile time.
- */
-]] .. table.concat(exports, '\n\n')
+        SIGNAMES = code,
+    })
+    writeout('./src/inc_export_signames.h', content)
 end
 
-local function output(txt, exports)
-    for filename, content in pairs {
-        ['./src/lua_signal.h'] = txt,
-        ['./src/export_signals.h'] = exports,
-    } do
-        local file = assert(io.open(filename, 'w+'))
-        file:write(content)
-        file:close()
-    end
+local function gen_lua_signal_h()
+    local file = assert(io.open('./src/lua_signal.h', 'r+'))
+    local content = file:read('*a'):gsub('${([^}]+)}', {
+        DATE = os.date('%c'),
+    })
+    file:seek('set')
+    file:write(content)
+    file:close()
 end
 
-output(codeGen(openFile()))
+do
+    local signames = openFile()
+    gen_inc_checksigname_h(signames)
+    gen_inc_tosigname_h(signames)
+    gen_inc_export_signals_h(signames)
+    gen_lua_signal_h()
+end

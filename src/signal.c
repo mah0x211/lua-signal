@@ -21,13 +21,28 @@
  */
 #include "lua_signal.h"
 
-static inline int is_valid_signo(int signo)
+typedef enum {
+    NOT_ALLOW_SIG0 = 0,
+    ALLOW_SIG0,
+} allow_sig0_t;
+
+static inline int checksignal(lua_State *L, int idx, allow_sig0_t is_allow)
 {
-    if (signo > 0 && signo < NSIG) {
-        return 1;
+    int isstr = lauxh_isstr(L, idx);
+    int signo = (isstr) ? checksigname(L, idx) : lauxh_checkinteger(L, idx);
+
+    if (signo > 0) {
+        sigset_t ss;
+        sigfillset(&ss);
+        if (sigismember(&ss, signo)) {
+            return signo;
+        }
+        signo = -1;
+    } else if (signo < 0 || (signo == 0 && is_allow != ALLOW_SIG0)) {
+        errno = EINVAL;
+        signo = -1;
     }
-    errno = EINVAL;
-    return 0;
+    return signo;
 }
 
 static int block_lua(lua_State *L)
@@ -39,14 +54,13 @@ static int block_lua(lua_State *L)
     lauxh_argcheck(L, argc > 0, 1, "signo expected, got no value");
     sigemptyset(&ss);
     for (; i <= argc; i++) {
-        int signo = lauxh_checkinteger(L, i);
-
-        // failed to add signo
-        if (!is_valid_signo(signo) || sigaddset(&ss, signo) != 0) {
-            lua_pushboolean(L, 0);
-            lua_errno_new(L, errno, "block.sigaddset");
-            return 2;
+        int signo = checksignal(L, i, NOT_ALLOW_SIG0);
+        if (signo != -1 && sigaddset(&ss, signo) == 0) {
+            continue;
         }
+        lua_pushboolean(L, 0);
+        lua_errno_new(L, errno, "block.sigaddset");
+        return 2;
     }
 
     // block signals
@@ -78,10 +92,9 @@ static int isblock_lua(lua_State *L)
     }
 
     while (i <= nsig) {
-        int signo = lauxh_checkinteger(L, i);
         int rc    = 0;
-
-        if (!is_valid_signo(signo)) {
+        int signo = checksignal(L, i, NOT_ALLOW_SIG0);
+        if (signo == -1) {
             lua_pushboolean(L, 0);
             lua_errno_new(L, errno, "isblock.sigismember");
             return 2;
@@ -141,14 +154,14 @@ static int unblock_lua(lua_State *L)
     lauxh_argcheck(L, argc > 0, 1, "signo expected, got no value");
     sigemptyset(&ss);
     for (; i <= argc; i++) {
-        int signo = lauxh_checkinteger(L, i);
-
-        // failed to add signo
-        if (!is_valid_signo(signo) || sigaddset(&ss, signo) != 0) {
-            lua_pushboolean(L, 0);
-            lua_errno_new(L, errno, "unblock.sigaddset");
-            return 2;
+        int signo = checksignal(L, i, NOT_ALLOW_SIG0);
+        if (signo != -1 && sigaddset(&ss, signo) == 0) {
+            continue;
         }
+        // failed to add signo
+        lua_pushboolean(L, 0);
+        lua_errno_new(L, errno, "unblock.sigaddset");
+        return 2;
     }
 
     // unblock signals
@@ -180,9 +193,9 @@ static int unblockall_lua(lua_State *L)
 
 static int raise_lua(lua_State *L)
 {
-    int signo = lauxh_checkinteger(L, 1);
+    int signo = checksignal(L, 1, NOT_ALLOW_SIG0);
 
-    if (is_valid_signo(signo) && raise(signo) == 0) {
+    if (signo != -1 && raise(signo) == 0) {
         lua_pushboolean(L, 1);
         return 1;
     }
@@ -194,10 +207,10 @@ static int raise_lua(lua_State *L)
 
 static int kill_lua(lua_State *L)
 {
-    int signo = lauxh_checkinteger(L, 1);
+    int signo = checksignal(L, 1, ALLOW_SIG0);
     pid_t pid = (pid_t)lauxh_optinteger(L, 2, getpid());
 
-    if (is_valid_signo(signo) && kill(pid, signo) == 0) {
+    if (signo != -1 && kill(pid, signo) == 0) {
         lua_pushboolean(L, 1);
         return 1;
     }
@@ -209,10 +222,10 @@ static int kill_lua(lua_State *L)
 
 static int killpg_lua(lua_State *L)
 {
-    int signo = lauxh_checkinteger(L, 1);
+    int signo = checksignal(L, 1, ALLOW_SIG0);
     pid_t pid = (pid_t)lauxh_optinteger(L, 2, getpgrp());
 
-    if (is_valid_signo(signo) && killpg(pid, signo) == 0) {
+    if (signo != -1 && killpg(pid, signo) == 0) {
         lua_pushboolean(L, 1);
         return 1;
     }
@@ -231,9 +244,9 @@ static int alarm_lua(lua_State *L)
 
 static int ignore_lua(lua_State *L)
 {
-    int signo = lauxh_checkinteger(L, 1);
+    int signo = checksignal(L, 1, NOT_ALLOW_SIG0);
 
-    if (is_valid_signo(signo) && signal(signo, SIG_IGN) != SIG_ERR) {
+    if (signo != -1 && signal(signo, SIG_IGN) != SIG_ERR) {
         lua_pushboolean(L, 1);
         return 1;
     }
@@ -245,9 +258,9 @@ static int ignore_lua(lua_State *L)
 
 static int default_lua(lua_State *L)
 {
-    int signo = lauxh_checkinteger(L, 1);
+    int signo = checksignal(L, 1, NOT_ALLOW_SIG0);
 
-    if (is_valid_signo(signo) && signal(signo, SIG_DFL) != SIG_ERR) {
+    if (signo != -1 && signal(signo, SIG_DFL) != SIG_ERR) {
         lua_pushboolean(L, 1);
         return 1;
     }
@@ -295,7 +308,10 @@ RETRY:
 
     if (signo != -1) {
         lua_pushinteger(L, signo);
-        return 1;
+        lua_pushnil(L);
+        lua_pushnil(L);
+        lua_pushstring(L, tosigname(signo));
+        return 4;
     } else if (errno == EAGAIN) {
         // timeout
         lua_pushnil(L);
@@ -403,7 +419,6 @@ static int wait_signals_lua(lua_State *L, sigset_t *ss, lua_Number sec)
     pthread_mutex_lock(&data.mutex);
     err = pthread_create(&th, NULL, sigwait_in_thread, &data);
     if (err) {
-        printf("failed to create thread: %s\n", strerror(err));
         // revert to old signal mask
         pthread_sigmask(SIG_SETMASK, &old_ss, NULL);
         pthread_mutex_unlock(&data.mutex);
@@ -439,7 +454,10 @@ static int wait_signals_lua(lua_State *L, sigset_t *ss, lua_Number sec)
         return 2;
     }
     lua_pushinteger(L, sig);
-    return 1;
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushstring(L, tosigname(sig));
+    return 4;
 }
 
 #endif
@@ -474,10 +492,8 @@ static int wait_lua(lua_State *L)
                 continue;
             }
 
-            sig = lauxh_checkinteger(L, i);
-            if (sig < 0 || sig >= NSIG) {
-                errno = EINVAL;
-            } else if (sigaddset(&ss, sig) == 0) {
+            sig = checksignal(L, i, NOT_ALLOW_SIG0);
+            if (sig != -1 && sigaddset(&ss, sig) == 0) {
                 continue;
             }
             lua_pushnil(L);
@@ -570,8 +586,8 @@ LUALIB_API int luaopen_signal(lua_State *L)
         lauxh_pushfn2tbl(L, ptr->name, ptr->func);
     }
 
-// set signal constants
-#include "export_signals.h"
+    // set signal constants
+#include "inc_export_signames.h"
 
     return 1;
 }

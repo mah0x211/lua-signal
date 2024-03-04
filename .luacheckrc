@@ -1,6 +1,8 @@
-std = 'max'
+std = "max"
 include_files = {
-    'test/*_test.lua',
+    "configure.lua",
+    "gen_headers.lua",
+    "test/*_test.lua",
 }
 ignore = {
     'assert',

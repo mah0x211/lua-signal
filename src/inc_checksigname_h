@@ -1,0 +1,22 @@
+/**
+ * src/inc_checksigname.h
+ * this file is overwritten by gen_headers.lua at compile time.
+ * ${DATE}
+ */
+// clang-format off
+
+static const char *const SIGNAMES[] = {
+${SIGNAMES},
+    NULL,
+};
+
+static inline int checksigname(lua_State *L, int index)
+{
+    switch (luaL_checkoption(L, index, NULL, SIGNAMES)) {
+    default:
+        errno = EINVAL;
+        return -1;
+
+${SIGCASES}
+    }
+}
