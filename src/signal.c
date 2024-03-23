@@ -304,14 +304,14 @@ static int wait_signals_lua(lua_State *L, sigset_t *ss, lua_Number sec)
     }
 
 RETRY:
-    if (sec == 0) {
+    if (sec < 0) {
         // wait forever
         signo = sigwaitinfo(ss, NULL);
     } else {
         // wait for a specified time or until interrupted by a signal
-        const struct timespec ts = {.tv_sec  = sec,
-                                    .tv_nsec = (sec - (uintmax_t)sec) * NSEC};
-        signo                    = sigtimedwait(ss, NULL, &ts);
+        struct timespec ts = {.tv_sec = sec};
+        ts.tv_nsec         = (sec - (double)ts.tv_sec) * NSEC;
+        signo              = sigtimedwait(ss, NULL, &ts);
     }
     if (signo == -1 && errno == EINTR) {
         // interrupted by a signal handler
@@ -443,9 +443,9 @@ static int wait_signals_lua(lua_State *L, sigset_t *ss, lua_Number sec)
         return 2;
     }
 
-    rc = (sec == 0) ? pthread_cond_wait(&data.cond, &data.mutex) :
-                      pthread_cond_timedwait(&data.cond, &data.mutex,
-                                             get_timeout(&data.cond, &ts, sec));
+    rc = (sec < 0) ? pthread_cond_wait(&data.cond, &data.mutex) :
+                     pthread_cond_timedwait(&data.cond, &data.mutex,
+                                            get_timeout(&data.cond, &ts, sec));
     // revert to old signal mask
     pthread_sigmask(SIG_SETMASK, &old_ss, NULL);
 
@@ -494,10 +494,9 @@ static inline int sigisemptyset(const sigset_t *ss)
 static int wait_lua(lua_State *L)
 {
     int argc       = lua_gettop(L);
-    lua_Number sec = lauxh_optnumber(L, 1, 0);
+    lua_Number sec = lauxh_optnumber(L, 1, -1);
     sigset_t ss;
 
-    lauxh_argcheck(L, sec >= 0, 1, "unsigned number expected, got %f", sec);
     // register signal actions
     sigemptyset(&ss);
     if (argc > 1) {
