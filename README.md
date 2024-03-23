@@ -194,7 +194,7 @@ this function returns immediately and with no return value if no signals are spe
 
 **Parameters**
 
-- `sec:number`: seconds. (default `0` means wait forever)
+- `sec:number`: waiting time in seconds. (default `-1` means wait forever)
 - `...:string|integer`: signal names or numbers. if not specified, wait for the pending signals.
 
 **Returns**
