@@ -1,3 +1,4 @@
+rockspec_format = "3.0"
 package = "signal"
 version = "scm-1"
 source = {
@@ -21,8 +22,11 @@ external_dependencies = {
         library = "pthread",
     },
 }
+build_dependencies = {
+    "luarocks-build-hooks >= 0.7.0",
+}
 build = {
-    type = "make",
+    type = "hooks",
     platforms = {
         linux = {
             build_variables = {
@@ -30,16 +34,52 @@ build = {
             },
         },
     },
-    build_variables = {
-        CFLAGS = "$(CFLAGS)",
-        WARNINGS = "-Wall -Wno-trigraphs -Wmissing-field-initializers -Wreturn-type -Wmissing-braces -Wparentheses -Wno-switch -Wunused-function -Wunused-label -Wunused-parameter -Wunused-variable -Wunused-value -Wuninitialized -Wunknown-pragmas -Wshadow -Wsign-compare",
-        CPPFLAGS = "-I$(LUA_INCDIR) -I$(PTHREAD_INCDIR)",
-        LDFLAGS = "$(LIBFLAG) -L$(PTHREAD_LIBDIR) -lpthread",
-        LIB_EXTENSION = "$(LIB_EXTENSION)",
-        SIGNAL_COVERAGE = "$(SIGNAL_COVERAGE)",
+    before_build = {
+        "$(extra-vars)",
+        "$(configh)",
+        "gen_headers.lua",
     },
-    install_variables = {
-        INST_LIBDIR = "$(LIBDIR)",
-        LIB_EXTENSION = "$(LIB_EXTENSION)",
+    extra_variables = {
+        CFLAGS = "-Wall -Wno-trigraphs -Wmissing-field-initializers -Wreturn-type -Wmissing-braces -Wparentheses -Wno-switch -Wunused-function -Wunused-label -Wunused-parameter -Wunused-variable -Wunused-value -Wuninitialized -Wunknown-pragmas -Wshadow -Wsign-compare",
+    },
+    conditional_variables = {
+        SIGNAL_COVERAGE = {
+            CFLAGS = "--coverage",
+            LIBFLAG = "--coverage",
+        },
+    },
+    modules = {
+        ["signal"] = {
+            sources = "src/signal.c",
+            incdirs = {
+                "$(PTHREAD_INCDIR)",
+                "$(DEP_LAUXHLIB_INCDIR)",
+                "$(DEP_ERRNO_INCDIR)",
+            },
+            libdirs = {
+                "$(PTHREAD_LIBDIR)",
+            },
+            libs = {
+                "$(PTHREAD_LIB)",
+            },
+            configh = {
+                output = "src/config.h",
+                output_status = true,
+                cc = "$(CC)",
+                features = {
+                    "_GNU_SOURCE",
+                },
+                funcs = {
+                    ["signal.h"] = {
+                        'sigwaitinfo',
+                        'sigtimedwait',
+                        'sigisemptyset',
+                    },
+                    ["pthread.h"] = {
+                        'pthread_condattr_setclock',
+                    },
+                },
+            },
+        },
     },
 }
