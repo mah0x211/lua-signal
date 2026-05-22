@@ -54,11 +54,7 @@ jobs:
     -
       name: Install Tools
       run: |
-        luarocks install assert
-        luarocks install fork
-        luarocks install getpid
-        luarocks install time-clock
-        luarocks install time-sleep
+        luarocks install testcase
     -
       name: Run Test
       run: |
