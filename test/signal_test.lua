@@ -1,9 +1,8 @@
+local testcase = require('testcase')
 local assert = require('assert')
-local errno = require('errno')
-local getpid = require('getpid')
-local sleep = require('time.sleep')
-local gettime = require('time.clock').gettime
-local fork = require('fork')
+local fork = require('testcase.fork')
+local getpid = require('testcase.getpid')
+local timer = require('testcase.timer')
 local signal = require('signal')
 
 -- constants
@@ -14,18 +13,6 @@ for k, v in pairs(signal) do
         SIGNALS[k] = v
     end
 end
-
-local testcase = setmetatable({}, {
-    __newindex = function(t, k, v)
-        assert.is_function(v)
-        assert(t[k] == nil, 'duplicate testcase: ' .. k)
-        rawset(t, k, true)
-        rawset(t, #t + 1, {
-            name = k,
-            func = v,
-        })
-    end,
-})
 
 function testcase.blockall()
     -- test that block all signal
@@ -65,11 +52,11 @@ function testcase.block()
     -- test that return error if signal number is invalid
     local ok, err = signal.block(-1)
     assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
+    assert.match(err, 'EINVAL')
 
     ok, err = signal.isblock(-1)
     assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
+    assert.match(err, 'EINVAL')
 
     -- test that throws an error if signal name is invalid
     err = assert.throws(signal.block, 'HELLO')
@@ -99,7 +86,7 @@ function testcase.unblock()
     -- test that return error if signal number is invalid
     local ok, err = signal.unblock(-1)
     assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
+    assert.match(err, 'EINVAL')
 
     -- test that throws an error if signal name is invalid
     err = assert.throws(signal.unblock, 'HELLO')
@@ -122,7 +109,7 @@ function testcase.ignore_default()
     -- test that return error if signal number is invalid
     local ok, err = signal.ignore(-1)
     assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
+    assert.match(err, 'EINVAL')
 
     -- test that throws an error if signal name is invalid
     err = assert.throws(signal.ignore, 'HELLO')
@@ -147,9 +134,9 @@ function testcase.wait()
     local pid = getpid()
 
     -- test that wait signal
-    local t = gettime()
+    local t = assert(timer.nanotime())
     local sig, err, timeout, signame = signal.wait(1.5, signal.SIGUSR2)
-    t = gettime() - t
+    t = assert(timer.nanotime()) - t
     assert.is_nil(sig)
     assert.is_nil(err)
     assert.is_true(timeout)
@@ -163,7 +150,7 @@ function testcase.wait()
     -- -- test that wait SIGCHLD signal
     -- local p = assert(fork())
     -- if p:is_child() then
-    --     sleep(0.2)
+    --     timer.sleep(0.2)
     --     os.exit(0)
     -- end
     -- sig, err, timeout, signame = signal.wait(1, 'SIGCHLD')
@@ -175,7 +162,7 @@ function testcase.wait()
     -- test that wait signal forever
     local p = assert(fork())
     if p:is_child() then
-        sleep(0.2)
+        timer.sleep(0.2)
         signal.kill(signal.SIGUSR2, pid)
         os.exit(0)
     end
@@ -195,7 +182,7 @@ function testcase.wait()
     -- test that can be wait even blocked signal
     p = assert(fork())
     if p:is_child() then
-        sleep(0.2)
+        timer.sleep(0.2)
         signal.kill(signal.SIGUSR1, pid)
         os.exit(0)
     end
@@ -217,7 +204,7 @@ function testcase.raise()
     local ok
     ok, err = signal.raise(-1)
     assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
+    assert.match(err, 'EINVAL')
 end
 
 function testcase.kill()
@@ -231,7 +218,7 @@ function testcase.kill()
     local ok
     ok, err = signal.kill(-1)
     assert.is_false(ok)
-    assert.equal(err.type, errno.EINVAL)
+    assert.match(err, 'EINVAL')
 end
 
 function testcase.killpg()
@@ -273,39 +260,7 @@ function testcase.tosigname()
     assert.match(err, 'bad argument #1')
 end
 
-local function consume_signals()
+function testcase.after_each()
+    signal.unblockall()
     signal.wait()
 end
-
-io.stdout:setvbuf('no')
-local errors = {}
-for _, t in ipairs(testcase) do
-    -- assert(signal.blockall())
-    io.stdout:write(t.name .. ' ... ')
-    local ok, err = xpcall(t.func, debug.traceback)
-    if ok then
-        print('ok')
-    else
-        print('failed')
-        print(err)
-        errors[#errors + 1] = {
-            name = t.name,
-            err = err,
-        }
-    end
-    assert(signal.unblockall())
-    consume_signals()
-end
-print(string.rep('-', 40))
-
-if #errors == 0 then
-    print('all tests passed')
-    return
-end
-
-print('failed tests:\n')
-for _, e in ipairs(errors) do
-    print(string.format('- %q: %s', e.name, e.err))
-    print(string.rep('-', 40))
-end
-error(string.format('#%d tests failed', #errors))
