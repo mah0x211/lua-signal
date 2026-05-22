@@ -36,7 +36,10 @@
 #include <unistd.h>
 // lua
 #include <lauxlib.h>
-#include <lua_errno.h>
+#include <lua.h>
+// external
+#include "lauxhlib.h"
+#include "lua_errno.h"
 
 #include "inc_checksigname.h"
 
